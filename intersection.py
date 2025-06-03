@@ -95,6 +95,7 @@ class Line:
 
         if (between(x1, x2, px) and between(y1, y2, py) and
             between(x3, x4, px) and between(y3, y4, py)):
+            add_intersected_line(self, other)
             return Vertex(np.round(px, digits), np.round(py, digits))
         return None
 
