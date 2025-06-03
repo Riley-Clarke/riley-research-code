@@ -11,7 +11,10 @@ ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_aspect('equal')
 
-# Vertex class
+minPointDiff=0.001
+minPointDiffSq=minPointDiff*minPointDiff
+
+# --------------------------------- Vertex class ---------------------------------
 class Vertex:
     def __init__(self, x, y):
         self.x = float(x)
@@ -38,7 +41,27 @@ class Vertex:
         self.x/=other.x
         self.y/=other.y
         return self
-    
+    def getSquaredLength(self):
+        return self.x*self.x+self.y*self.y
+    def getSquaredDistance(self, other):
+        return self.sub(other).getSquaredLength
+    @staticmethod
+    def getLineFromPoints(p, q):
+        a = p.y - q.y
+        b = q.x - p.x
+        c = (p.x - q.x) * p.y + (q.y - p.y) * p.x
+        return [a, b, c]
+    @staticmethod
+    def lineDist(a, b, c, p):
+        if (a + b == 0.0):
+            return float('inf')
+        return abs(a * p.x + b * p.y + c) / np.sqrt(a * a + b * b)
+    @staticmethod
+    def lineDistPoints(a,b,p):
+        params=Vertex.getLineFromPoints(a, b)
+        return Vertex.lineDist(params[0],params[1],params[2], p)
+
+#---------------------------------------------------------------------------
 
 # Corners of the square
 corners = [
@@ -48,16 +71,18 @@ corners = [
     Vertex(0.0, 1.0)
 ]
 
+
+# --------------------------------- Line Class ---------------------------------
+
 digits = 4
 
 class Line:
+    _id_counter = 0  # class variable for unique IDs
+
     def __init__(self, v1=None, v2=None, id=None):
         if v1 is not None and v2 is not None:
             self.v1 = v1
             self.v2 = v2
-            self.id = id
-            self.intersections = []         # List of intersection points (optional)
-            self.intersected_lines = set()  # Set of Line objects or their IDs
         else:
             if random.randint(1, 10) % 2 == 0:
                 y1 = np.round(random.random(), digits)
@@ -69,12 +94,20 @@ class Line:
                 x2 = np.round(random.random(), digits)
                 self.v1 = Vertex(x1, 0)
                 self.v2 = Vertex(x2, 1)
+        if id is not None:
+            self.id = id
+        else:
+            self.id = Line._id_counter
+            Line._id_counter += 1
+        self.intersections = []
+        self.intersected_lines = set()
         self.x = [self.v1.x, self.v2.x]
         self.y = [self.v1.y, self.v2.y]
     def __str__(self):
-        return f"({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
+        return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
+    
     def intersect(self, other):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
@@ -95,9 +128,17 @@ class Line:
 
         if (between(x1, x2, px) and between(y1, y2, py) and
             between(x3, x4, px) and between(y3, y4, py)):
+            def add_intersected_line(self, other_line):
+                self.intersected_lines.add(other_line)
             add_intersected_line(self, other)
+            add_intersected_line(other, self)
+            print("Intersection added")
             return Vertex(np.round(px, digits), np.round(py, digits))
         return None
+
+# ------------------------------------------------------------------------------
+
+
 
 class Poly_Cycle:
     def __init__(self, set, start, end, closed, fine):
@@ -180,7 +221,7 @@ for idx, line in enumerate(lines):
 # Plot all segments
 for line in new_lines:
     plt.plot(line.x, line.y, color='b')
-plt.show()
+
 
 
 # Print all vertices (optional)
@@ -195,8 +236,10 @@ for line in new_lines:
     print(line)
     
 
+plt.show()
 
 
 
 
-# NEXT- 
+
+# NEXT-
