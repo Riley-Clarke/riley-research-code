@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import random
+import networkx as nx
+
+
 
 # Matplotlib setup
 fig, ax = plt.subplots(1)
@@ -11,8 +14,7 @@ ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_aspect('equal')
 
-minPointDiff=0.001
-minPointDiffSq=minPointDiff*minPointDiff
+
 
 # --------------------------------- Vertex class ---------------------------------
 class Vertex:
@@ -25,41 +27,6 @@ class Vertex:
         return hash((round(self.x, 6), round(self.y, 6)))
     def __repr__(self):
         return f"Vertex({self.x:.4f}, {self.y:.4f})"
-    def sub(self, other):
-        self.x-=other.x
-        self.y-=other.y
-        return self
-    def add(self, other):
-        self.x+=other.x
-        self.y+=other.y
-        return self
-    def mul(self, other):
-        self.x*=other.x
-        self.y*=other.y
-        return self
-    def div(self, other):
-        self.x/=other.x
-        self.y/=other.y
-        return self
-    def getSquaredLength(self):
-        return self.x*self.x+self.y*self.y
-    def getSquaredDistance(self, other):
-        return self.sub(other).getSquaredLength
-    @staticmethod
-    def getLineFromPoints(p, q):
-        a = p.y - q.y
-        b = q.x - p.x
-        c = (p.x - q.x) * p.y + (q.y - p.y) * p.x
-        return [a, b, c]
-    @staticmethod
-    def lineDist(a, b, c, p):
-        if (a + b == 0.0):
-            return float('inf')
-        return abs(a * p.x + b * p.y + c) / np.sqrt(a * a + b * b)
-    @staticmethod
-    def lineDistPoints(a,b,p):
-        params=Vertex.getLineFromPoints(a, b)
-        return Vertex.lineDist(params[0],params[1],params[2], p)
 
 #---------------------------------------------------------------------------
 
@@ -70,128 +37,6 @@ corners = [
     Vertex(1.0, 1.0),
     Vertex(0.0, 1.0)
 ]
-
-
-# ------------------------------- Helper Functions -----------------------------
-
-def doIntersect(p1, q1, p2, q2):
-    o1=orientation(p1, q1, p2)
-    o2=orientation(p1, q1, q2)
-    o3=orientation(p2, q2, p1)
-    o4=orientation(p2, q2, q1)
-
-    #General case
-    if(o1!=o2 and o3 != o4):
-        return True
-    
-    #Special cases
-    # p1, q1 and p2 are colinear and p2 lies on segment p1q1
-    if (o1 == 0 and onSegment(p1, p2, q1)): return True
-
-    # p1, q1 and q2 are colinear and q2 lies on segment p1q1
-    if (o2 == 0 and onSegment(p1, q2, q1)): return True
-
-    # p2, q2 and p1 are colinear and p1 lies on segment p2q2
-    if (o3 == 0 and onSegment(p2, p1, q2)): return True
-
-    # p2, q2 and q1 are colinear and q1 lies on segment p2q2
-    if (o4 == 0 and onSegment(p2, q1, q2)): return True
-
-    return False # Doesn't fall in any of the above cases
-
-''' 
- To find orientation of ordered triplet (p, q, r).
- The function returns following values
- 0 --> p, q and r are colinear
- 1 --> Clockwise
- 2 --> Counterclockwise
-'''
-
-def orientation(p, q, r):
-    val= (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
-    if(val==0.0): return 0
-    if(val>0):return 1
-    return 2
-
-'''
- Given three colinear points p, q, r, the function checks if
- point q lies on line segment 'pr'
-'''
-
-def onSegment(p, q, r):
-    if (q.x <= max(p.x, r.x) and q.x >= min(p.x, r.x) and
-        q.y <= max(p.y, r.y) and q.y >= min(p.y, r.y)):
-        return True
-
-    return False
-
-def collinearVecs(p, q, r):
-    return orientation(p, q, r) == 0
-
-'''
-* @return true is this point is betwen a and b
-* @note c must be collinear with a and b
-* @see O'Rourke, Joseph, "Computational Geometry in C, 2nd Ed.", pp.32
-*/
-'''
-
-def between(p, a, b):
-    if (not collinearVecs(p, a, b)):
-        return False
-    _x = p.x
-    _y = p.y
-    return ((a.x <= _x and _x <= b.x) and (a.y <= _y and _y <= b.y)) or ((b.x <= _x and _x <= a.x) and (b.y <= _y and _y <= a.y))
-
-def pointsDiffer(a, b, approx):
-    if (approx):
-        return a.getSquaredDistance(b) >= minPointDiffSq
-    return a.x != b.x or a.y != b.y
-
-def overlap(l1, l2):
-     return (collinearVecs(l1.a, l2.a, l2.b) and collinearVecs(l1.b, l2.a, l2.b)) and ((l1.contains(l2.a) or l1.contains(l2.b)) or (l2.contains(l1.a) or l2.contains(l1.b)))
-
-def simplifiedLine(line_1, line_2):
-    if (overlap(line_1, line_2)):
-        if (line_1.contains(line_2)):
-            ret = line_1
-            return 1
-        if (line_2.contains(line_1)):
-            ret = line_2
-            return 2
-        new_line_start_point=None
-        new_line_end_point=None
-
-        # detects which point of <line_1> must be removed
-        if (between(line_1.a, line_2.a, line_2.b)):
-            new_line_start_point = line_1.b
-        else:
-            new_line_start_point = line_1.a
-        # detects which point of <line_2> must be removed
-        if (between(line_2.a, line_1.a, line_1.b)):
-            new_line_end_point = line_2.b
-        else:
-            new_line_end_point = line_2.a
-        # create a new line
-        ret = Line(new_line_start_point, new_line_end_point)
-        return 3
-    return 0
-
-
-def iComparePointOrder(p1, p2):
-    if (p1.y < p2.y):
-        return -1
-    elif (p1.y == p2.y):
-        if (p1.x < p2.x):
-            return -1
-        elif (p1.x == p2.x):
-            return 0
-    # p1 is greater than p2
-    return 1
-
-def bComparePointOrder(p1, p2): return iComparePointOrder(p1, p2) < 0
-
-#---------------------------------------------------------------------------
-
 
 
 
@@ -262,26 +107,6 @@ class Line:
 # ------------------------------------------------------------------------------
 
 
-
-class Poly_Cycle:
-    def __init__(self, set, start, end, closed, fine):
-        self.Cycle_Set=set
-        self.start_idx=start
-        self.end_idx=end
-        self.isClosed=closed
-        self.fine=fine
-
-PolyCycles=[]
-
-class Polygon:
-    def __init__(self):
-        pass
-
-class Polygon_Detector:
-    def __init__(self):
-        pass
-
-
 def create_lines(n):
     lines = []
     for idx in range(n):
@@ -349,6 +174,7 @@ for line in new_lines:
 
 # Print all vertices (optional)
 all_vertices = set()
+
 for line in new_lines:
     all_vertices.add(line.v1)
     all_vertices.add(line.v2)
@@ -357,12 +183,11 @@ for vertex in all_vertices:
 
 for line in new_lines:
     print(line)
-    
 
+edges = [((round(line.v1.x, 6), round(line.v1.y, 6)), (round(line.v2.x, 6), round(line.v2.y, 6))) for line in new_lines]
+
+G = nx.Graph()
+G.add_edges_from(edges)
+cycles = nx.cycle_basis(G)
+print("Detected polygons:", cycles)
 plt.show()
-
-
-
-
-
-# NEXT-
