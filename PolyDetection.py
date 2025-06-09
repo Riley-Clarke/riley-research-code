@@ -57,7 +57,7 @@ class Line:
             val1=np.round(random.random(), digits)
             val2=np.round(random.random(), digits)
             int1=random.randint(0,1)
-            int2=random.randint(0,1)
+            int2=abs(int1-1)
             if rand == 0:
                 self.v1 = Vertex(int1, val1)
                 self.v2 = Vertex(int2, val2)
@@ -123,7 +123,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(4)
+lines = create_lines(2)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -200,8 +200,28 @@ polys = nx.minimum_cycle_basis(G)
 print("Detected polygons:", polys)
 print("Number of Polygons:", len(polys))
 totalverts=0
-for poly in polys:totalverts+=len(poly)
-print("Average number of vertices:", totalverts/(len(polys)))
+
+for poly in polys:
+    totalverts+=len(poly)
+
+print("Average number of vertices:", totalverts/(len(polys)))    
+#shoelace formula for area of polygon
+#x[:-1] is [x1,x2,...,xn] and x[1:] is [x2,x3,...xn+1] so the terms pair up
+def areaOfPoly(poly):
+    poly_x = []
+    poly_y = []
+    for vert in poly:
+        poly_x.append(vert[0])
+        poly_y.append(vert[1]) 
+    if poly_x[0] != poly_x[-1] or poly_y[0] != poly_y[-1]:
+        poly_x.append(poly_x[0])
+        poly_y.append(poly_y[0])
+    poly_x = np.array(poly_x)
+    poly_y = np.array(poly_y)
+    A = 0.5 * np.abs(np.sum(poly_x[:-1] * poly_y[1:] - poly_x[1:] * poly_y[:-1]))
+    return A
+
+print(areaOfPoly(polys[0]))
 
 plt.show()
 
