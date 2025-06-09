@@ -13,6 +13,7 @@ ax.add_patch(square)
 ax.set_xlim(0, 1)
 ax.set_ylim(0, 1)
 ax.set_aspect('equal')
+plt.bone()
 
 
 
@@ -52,16 +53,23 @@ class Line:
             self.v1 = v1
             self.v2 = v2
         else:
-            if random.randint(1, 10) % 2 == 0:
-                y1 = np.round(random.random(), digits)
-                y2 = np.round(random.random(), digits)
-                self.v1 = Vertex(0, y1)
-                self.v2 = Vertex(1, y2)
-            else:
-                x1 = np.round(random.random(), digits)
-                x2 = np.round(random.random(), digits)
-                self.v1 = Vertex(x1, 0)
-                self.v2 = Vertex(x2, 1)
+            rand=random.randint(0,3)
+            val1=np.round(random.random(), digits)
+            val2=np.round(random.random(), digits)
+            int1=random.randint(0,1)
+            int2=random.randint(0,1)
+            if rand == 0:
+                self.v1 = Vertex(int1, val1)
+                self.v2 = Vertex(int2, val2)
+            elif rand==1:
+                self.v1 = Vertex(val1, int1)
+                self.v2 = Vertex(val2, int2)
+            elif rand==2:
+                self.v1 = Vertex(int1, val1)
+                self.v2 = Vertex(val2, int2)
+            elif rand==3:
+                self.v1 = Vertex(val1, int1)
+                self.v2 = Vertex(int2, val2)
         if id is not None:
             self.id = id
         else:
@@ -100,7 +108,6 @@ class Line:
                 self.intersected_lines.add(other_line)
             add_intersected_line(self, other)
             add_intersected_line(other, self)
-            print("Intersection added")
             return Vertex(np.round(px, digits), np.round(py, digits))
         return None
 
@@ -184,10 +191,11 @@ for vertex in all_vertices:
 for line in new_lines:
     print(line)
 
-edges = [((round(line.v1.x, 6), round(line.v1.y, 6)), (round(line.v2.x, 6), round(line.v2.y, 6))) for line in new_lines]
+edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
 
 G = nx.Graph()
 G.add_edges_from(edges)
-cycles = nx.cycle_basis(G)
-print("Detected polygons:", cycles)
+polys = nx.cycle_basis(G)
+print("Detected polygons:", polys)
+print("Number of Polygons:", len(polys))
 plt.show()
