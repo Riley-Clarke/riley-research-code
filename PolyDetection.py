@@ -118,12 +118,12 @@ def create_lines(n):
     lines = []
     for idx in range(n):
         line = Line()
-        print(f"Line {idx+1}: {line}")
+        print(f"{line}")
         lines.append(line)
     return lines
 
 # Add random lines and border lines
-lines = create_lines(2)
+lines = create_lines(4)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -186,7 +186,8 @@ for line in new_lines:
     all_vertices.add(line.v1)
     all_vertices.add(line.v2)
 for vertex in all_vertices:
-    print(f"Vertex: ({vertex.x},{vertex.y})")
+    #print(f"Vertex: ({vertex.x},{vertex.y})")
+    pass
 
 for line in new_lines:
     print(line)
@@ -195,7 +196,12 @@ edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x
 
 G = nx.Graph()
 G.add_edges_from(edges)
-polys = nx.cycle_basis(G)
+polys = nx.minimum_cycle_basis(G)
 print("Detected polygons:", polys)
 print("Number of Polygons:", len(polys))
+totalverts=0
+for poly in polys:totalverts+=len(poly)
+print("Average number of vertices:", totalverts/(len(polys)))
+
 plt.show()
+
