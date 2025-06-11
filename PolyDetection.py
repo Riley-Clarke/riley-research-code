@@ -123,7 +123,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(2)
+lines = create_lines(30)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -200,9 +200,12 @@ polys = nx.minimum_cycle_basis(G)
 print("Detected polygons:", polys)
 print("Number of Polygons:", len(polys))
 totalverts=0
-
+listPolySizes=[]
 for poly in polys:
     totalverts+=len(poly)
+    listPolySizes.append(len(poly))
+
+
 
 print("Average number of vertices:", totalverts/(len(polys)))    
 #shoelace formula for area of polygon
@@ -223,5 +226,8 @@ def areaOfPoly(poly):
 
 print(areaOfPoly(polys[0]))
 
+plt.show()
+
+plt.hist(listPolySizes)
 plt.show()
 
