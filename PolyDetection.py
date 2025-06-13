@@ -7,12 +7,13 @@ import networkx as nx
 
 
 # Matplotlib setup
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1,4)
 square = patches.Rectangle((0.0, 0.0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
-ax.add_patch(square)
-ax.set_xlim(0, 1)
-ax.set_ylim(0, 1)
-ax.set_aspect('equal')
+ax[0].add_patch(square)
+ax[0].set_xlim(0, 1)
+ax[0].set_ylim(0, 1)
+ax[0].set_aspect('equal')
+ax[1].set_aspect('equal')
 plt.bone()
 
 
@@ -123,7 +124,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(30)
+lines = create_lines(5)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -175,7 +176,7 @@ for idx, line in enumerate(lines):
 
 # Plot all segments
 for line in new_lines:
-    plt.plot(line.x, line.y, color='b')
+    ax[0].plot(line.x, line.y, color='b')
 
 
 
@@ -200,14 +201,9 @@ polys = nx.minimum_cycle_basis(G)
 print("Detected polygons:", polys)
 print("Number of Polygons:", len(polys))
 totalverts=0
-listPolySizes=[]
-for poly in polys:
-    totalverts+=len(poly)
-    listPolySizes.append(len(poly))
 
 
-
-print("Average number of vertices:", totalverts/(len(polys)))    
+   
 #shoelace formula for area of polygon
 #x[:-1] is [x1,x2,...,xn] and x[1:] is [x2,x3,...xn+1] so the terms pair up
 def areaOfPoly(poly):
@@ -224,10 +220,24 @@ def areaOfPoly(poly):
     A = 0.5 * np.abs(np.sum(poly_x[:-1] * poly_y[1:] - poly_x[1:] * poly_y[:-1]))
     return A
 
-print(areaOfPoly(polys[0]))
 
-plt.show()
 
-plt.hist(listPolySizes)
+listPolySizes=[]
+listPolyAreas=[]
+vBarLines=[]
+for poly in polys:
+    totalverts+=len(poly)
+    listPolySizes.append(len(poly))
+    listPolyAreas.append(areaOfPoly(poly))
+    vBarLines.append(totalverts/len(listPolySizes))
+    
+print("Average number of vertices:", totalverts/(len(polys))) 
+indeces=[]
+for i in range(0,len(listPolyAreas)):
+    indeces.append(i)
+
+ax[1].hist(listPolySizes)
+ax[2].scatter(indeces, listPolyAreas)
+ax[3].plot(indeces,vBarLines)
 plt.show()
 
