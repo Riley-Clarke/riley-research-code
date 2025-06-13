@@ -14,6 +14,8 @@ ax[0].set_xlim(0, 1)
 ax[0].set_ylim(0, 1)
 ax[0].set_aspect('equal')
 ax[1].set_aspect('equal')
+ax[2].set_aspect('auto')
+ax[3].set_aspect('auto')
 plt.bone()
 
 
@@ -124,7 +126,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(5)
+lines = create_lines(10)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -237,7 +239,14 @@ for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
 ax[1].hist(listPolySizes)
+ax[1].set_xlabel("Size of Polygon")
+ax[1].set_ylabel("Number of Polygons")
 ax[2].scatter(indeces, listPolyAreas)
+ax[2].set_xlabel("Index of Polygon")
+ax[2].set_ylabel("Area of Polygons")
 ax[3].plot(indeces,vBarLines)
+ax[3].set_xlabel("Number of Polygons")
+ax[3].set_ylabel("Avg. Area of Polygons")
+plt.subplot_tool()
 plt.show()
 
