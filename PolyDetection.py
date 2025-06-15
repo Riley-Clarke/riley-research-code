@@ -7,12 +7,15 @@ import networkx as nx
 
 
 # Matplotlib setup
-fig, ax = plt.subplots(1)
+fig, ax = plt.subplots(1,4, figsize=(20,5))
 square = patches.Rectangle((0.0, 0.0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
-ax.add_patch(square)
-ax.set_xlim(0, 1)
-ax.set_ylim(0, 1)
-ax.set_aspect('equal')
+ax[0].add_patch(square)
+ax[0].set_xlim(0, 1)
+ax[0].set_ylim(0, 1)
+ax[0].set_aspect('equal')
+ax[1].set_aspect('equal')
+ax[2].set_aspect('auto')
+ax[3].set_aspect('auto')
 plt.bone()
 
 
@@ -123,7 +126,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(2)
+lines = create_lines(30)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -175,7 +178,7 @@ for idx, line in enumerate(lines):
 
 # Plot all segments
 for line in new_lines:
-    plt.plot(line.x, line.y, color='b')
+    ax[0].plot(line.x, line.y, color='b')
 
 
 
@@ -189,9 +192,6 @@ for vertex in all_vertices:
     #print(f"Vertex: ({vertex.x},{vertex.y})")
     pass
 
-for line in new_lines:
-    print(line)
-
 edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
 
 G = nx.Graph()
@@ -201,10 +201,8 @@ print("Detected polygons:", polys)
 print("Number of Polygons:", len(polys))
 totalverts=0
 
-for poly in polys:
-    totalverts+=len(poly)
 
-print("Average number of vertices:", totalverts/(len(polys)))    
+   
 #shoelace formula for area of polygon
 #x[:-1] is [x1,x2,...,xn] and x[1:] is [x2,x3,...xn+1] so the terms pair up
 def areaOfPoly(poly):
@@ -221,7 +219,31 @@ def areaOfPoly(poly):
     A = 0.5 * np.abs(np.sum(poly_x[:-1] * poly_y[1:] - poly_x[1:] * poly_y[:-1]))
     return A
 
-print(areaOfPoly(polys[0]))
 
+
+listPolySizes=[]
+listPolyAreas=[]
+vBarLines=[]
+for poly in polys:
+    totalverts+=len(poly)
+    listPolySizes.append(len(poly))
+    listPolyAreas.append(areaOfPoly(poly))
+    vBarLines.append(totalverts/len(listPolySizes))
+    
+print("Average number of vertices:", totalverts/(len(polys))) 
+indeces=[]
+for i in range(0,len(listPolyAreas)):
+    indeces.append(i)
+
+ax[1].hist(listPolySizes)
+ax[1].set_xlabel("Number of Sides")
+ax[1].set_ylabel("Number of Polygons")
+ax[2].hist(listPolyAreas)
+ax[2].set_xlabel("Area of Polygons")
+ax[2].set_ylabel("Number of Polygons")
+ax[3].plot(indeces,vBarLines)
+ax[3].set_xlabel("Number of Polygons")
+ax[3].set_ylabel("Avg. Number of Sides")
+plt.subplot_tool()
 plt.show()
 
