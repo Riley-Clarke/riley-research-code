@@ -191,7 +191,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(15)
+lines = create_lines(50)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -260,7 +260,7 @@ for line in new_lines:
     ax[0].plot(line.x, line.y, color='b')
 
 ax[1].hist(listPolySizes)
-ax[1].set_xlabel("Size of Polygon")
+ax[1].set_xlabel("Number of Sides")
 ax[1].set_ylabel("Number of Polygons")
 ax[2].hist(listPolyAreas)
 ax[2].set_xlabel("Area of Polygons")
