@@ -7,13 +7,13 @@ import networkx as nx
 
 
 # Matplotlib setup
-fig, ax = plt.subplots(1,4)
+fig, ax = plt.subplots(1,4, figsize=(20, 5))
 square = patches.Rectangle((0.0, 0.0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
 ax[0].add_patch(square)
 ax[0].set_xlim(0, 1)
 ax[0].set_ylim(0, 1)
 ax[0].set_aspect('equal')
-ax[1].set_aspect('equal')
+ax[1].set_aspect('auto')
 ax[2].set_aspect('auto')
 ax[3].set_aspect('auto')
 plt.bone()
@@ -115,34 +115,15 @@ class Line:
         return None
 
 # ------------------------------------------------------------------------------
-
-
-def create_lines(n):
-    lines = []
-    for idx in range(n):
-        line = Line()
-        print(f"{line}")
-        lines.append(line)
-    return lines
-
-# Add random lines and border lines
-lines = create_lines(10)
-border_lines = [
-    Line(corners[0], corners[1]),
-    Line(corners[1], corners[2]),
-    Line(corners[2], corners[3]),
-    Line(corners[3], corners[0])
-]
-lines += border_lines
-
-# Find all intersections
-intersections = {i: set([lines[i].v1, lines[i].v2]) for i in range(len(lines))}
-for i in range(len(lines)):
-    for j in range(i+1, len(lines)):
-        pt = lines[i].intersect(lines[j])
-        if pt:
-            intersections[i].add(pt)
-            intersections[j].add(pt)
+def find_intersections(lines):
+    intersections = {i: set([lines[i].v1, lines[i].v2]) for i in range(len(lines))}
+    for i in range(len(lines)):
+        for j in range(i+1, len(lines)):
+            pt = lines[i].intersect(lines[j])
+            if pt:
+                intersections[i].add(pt)
+                intersections[j].add(pt)
+    return intersections
 
 # Split lines at intersection points
 def split_line_at_points(line, points):
@@ -170,30 +151,69 @@ def split_line_at_points(line, points):
             segments.append(seg)
     return segments
 
+average_vertices=[]
+
+def update_and_print_average(lines, digits=4):
+    # Find intersections and split lines
+    intersections = find_intersections(lines)
+    new_lines = []
+    for idx, line in enumerate(lines):
+        pts = list(intersections[idx])
+        segments = split_line_at_points(line, pts)
+        new_lines.extend(segments)
+    # Build graph and find polygons
+    edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
+    G = nx.Graph()
+    G.add_edges_from(edges)
+    polys = nx.minimum_cycle_basis(G)
+    if polys:
+        totalverts = sum(len(poly) for poly in polys)
+        average_vertices.append(totalverts / len(polys))
+    else:
+        print("No polygons detected yet.")
+
+
+
+def create_lines(n):
+    lines = []
+    for idx in range(n):
+        line = Line()
+        print(f"{line}")
+        lines.append(line)
+        # Add border lines for context (optional, or add after all random lines)
+        temp_lines = lines + [
+            Line(corners[0], corners[1]),
+            Line(corners[1], corners[2]),
+            Line(corners[2], corners[3]),
+            Line(corners[3], corners[0])
+        ]
+        update_and_print_average(temp_lines)
+    return lines
+
+# Add random lines and border lines
+lines = create_lines(15)
+border_lines = [
+    Line(corners[0], corners[1]),
+    Line(corners[1], corners[2]),
+    Line(corners[2], corners[3]),
+    Line(corners[3], corners[0])
+]
+lines += border_lines
+
+# Find all intersections
+intersections=find_intersections(lines)
+
+
+
 new_lines = []
 for idx, line in enumerate(lines):
     pts = list(intersections[idx])
     segments = split_line_at_points(line, pts)
     new_lines.extend(segments)
 
-# Plot all segments
-for line in new_lines:
-    ax[0].plot(line.x, line.y, color='b')
 
 
 
-# Print all vertices (optional)
-all_vertices = set()
-
-for line in new_lines:
-    all_vertices.add(line.v1)
-    all_vertices.add(line.v2)
-for vertex in all_vertices:
-    #print(f"Vertex: ({vertex.x},{vertex.y})")
-    pass
-
-for line in new_lines:
-    print(line)
 
 edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
 
@@ -234,19 +254,21 @@ for poly in polys:
     vBarLines.append(totalverts/len(listPolySizes))
     
 print("Average number of vertices:", totalverts/(len(polys))) 
-indeces=[]
-for i in range(0,len(listPolyAreas)):
-    indeces.append(i)
+
+# Lines are finalized, plot
+for line in new_lines:
+    ax[0].plot(line.x, line.y, color='b')
 
 ax[1].hist(listPolySizes)
 ax[1].set_xlabel("Size of Polygon")
 ax[1].set_ylabel("Number of Polygons")
-ax[2].scatter(indeces, listPolyAreas)
-ax[2].set_xlabel("Index of Polygon")
-ax[2].set_ylabel("Area of Polygons")
-ax[3].plot(indeces,vBarLines)
+ax[2].hist(listPolyAreas)
+ax[2].set_xlabel("Area of Polygons")
+ax[2].set_ylabel("Number of Polygons")
+ax[3].plot(range(0, len(vBarLines)),vBarLines)
 ax[3].set_xlabel("Number of Polygons")
-ax[3].set_ylabel("Avg. Area of Polygons")
+ax[3].set_ylabel("Avg. Number of Vertices")
 plt.subplot_tool()
 plt.show()
+
 
