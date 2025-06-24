@@ -126,7 +126,7 @@ def create_lines(n):
     return lines
 
 # Add random lines and border lines
-lines = create_lines(30)
+lines = create_lines(10)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -210,6 +210,17 @@ def areaOfPoly(poly):
     A = 0.5 * np.abs(np.sum(poly_x[:-1] * poly_y[1:] - poly_x[1:] * poly_y[:-1]))
     return A
 
+def pick_a_poly(polys):
+    poly=random.randint(0, len(polys))
+    return poly
+
+def cut_a_poly(poly):
+    s1=random.randint(0, len(poly))
+    s2=random.randint(0, len(poly))
+    while(s1==s2):
+        s2=random.randint(0, len(poly))
+    
+
 
 
 listPolySizes=[]
@@ -226,6 +237,7 @@ indeces=[]
 for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
+
 ax[1].hist(listPolySizes)
 ax[1].set_xlabel("Number of Sides")
 ax[1].set_ylabel("Number of Polygons")
@@ -237,4 +249,14 @@ ax[3].set_xlabel("Number of Polygons")
 ax[3].set_ylabel("Avg. Number of Sides")
 plt.subplot_tool()
 plt.show()
+
+'''
+Pick a random polygon
+Pick two random points (on different sides)
+Make a line connecting those two points
+Add the two new polygons to the list of polygons
+Remove the initial polygon
+Take the number of each n-gon after every cut. (DO THIS IN A SMART WAY. DONT JUST TAKE A RANDOM )
+
+'''
 
