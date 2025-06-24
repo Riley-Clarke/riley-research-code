@@ -116,6 +116,8 @@ class Line:
 
 # ------------------------------------------------------------------------------
 
+#=============================== HELPER FUNCTIONS ======================================
+
 
 def create_lines(n):
     lines = []
@@ -125,25 +127,17 @@ def create_lines(n):
         lines.append(line)
     return lines
 
-# Add random lines and border lines
-lines = create_lines(10)
-border_lines = [
-    Line(corners[0], corners[1]),
-    Line(corners[1], corners[2]),
-    Line(corners[2], corners[3]),
-    Line(corners[3], corners[0])
-]
-lines += border_lines
-
 # Find all intersections
 print("Finding intersections and splitting lines...")
-intersections = {i: set([lines[i].v1, lines[i].v2]) for i in range(len(lines))}
-for i in range(len(lines)):
-    for j in range(i+1, len(lines)):
-        pt = lines[i].intersect(lines[j])
-        if pt:
-            intersections[i].add(pt)
-            intersections[j].add(pt)
+def find_intersections(lines):
+    intersections = {i: set([lines[i].v1, lines[i].v2]) for i in range(len(lines))}
+    for i in range(len(lines)):
+        for j in range(i+1, len(lines)):
+            pt = lines[i].intersect(lines[j])
+            if pt:
+                intersections[i].add(pt)
+                intersections[j].add(pt)
+    return intersections
 
 # Split lines at intersection points
 def split_line_at_points(line, points):
@@ -171,27 +165,6 @@ def split_line_at_points(line, points):
             segments.append(seg)
     return segments
 
-new_lines = []
-for idx, line in enumerate(lines):
-    pts = list(intersections[idx])
-    segments = split_line_at_points(line, pts)
-    new_lines.extend(segments)
-
-# Plot all segments
-for line in new_lines:
-    ax[0].plot(line.x, line.y, color='b')
-
-
-
-edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
-print("Finding Polygons...")
-G = nx.Graph()
-G.add_edges_from(edges)
-polys = nx.minimum_cycle_basis(G)
-print("Detected polygons:", polys)
-print("Number of Polygons:", len(polys))
-totalverts=0
-
 
    
 #shoelace formula for area of polygon
@@ -210,19 +183,82 @@ def areaOfPoly(poly):
     A = 0.5 * np.abs(np.sum(poly_x[:-1] * poly_y[1:] - poly_x[1:] * poly_y[:-1]))
     return A
 
+
+#pick a random polygon from a list of polygons
 def pick_a_poly(polys):
     poly=random.randint(0, len(polys))
     return poly
 
+#pick a random point along a line
+def pick_a_point(line):
+    x = round(random.uniform(line.v1.x, line.v2.x), digits)
+    y = round(random.uniform(line.v1.y, line.v2.y), digits)
+    vert=Vertex(x, y)
+    return vert
+    
+
+#cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly):
     s1=random.randint(0, len(poly))
     s2=random.randint(0, len(poly))
     while(s1==s2):
         s2=random.randint(0, len(poly))
-    
+    p1=pick_a_point(poly[s1])
+    p2=pick_a_point(poly[s2])
+    points=[p1, p2]
+    lines=[]
+    line= Line(p1, p2)
+    lines.append(line)
+    l1=split_line_at_points(s1, points)
+    l2=split_line_at_points(s2, points)
+    lines.extend(l1)
+    lines.extend(l2)
+    cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in lines]
+    graph=nx.graph()
+    graph.add_edges_from(cut_edges)
+    new_polys=nx.minimum_cycle_basis(graph)
+    for p in new_polys:print(f"Cut Poly:{p}") 
+
+#=============================== END HELPER FUNCTIONS ======================================
+
+#==================================== BODY OF CODE =========================================
 
 
 
+# Add random lines and border lines
+lines = create_lines(3)
+border_lines = [
+    Line(corners[0], corners[1]),
+    Line(corners[1], corners[2]),
+    Line(corners[2], corners[3]),
+    Line(corners[3], corners[0])
+]
+lines += border_lines
+
+
+intersections=find_intersections(lines)
+new_lines = []
+for idx, line in enumerate(lines):
+    pts = list(intersections[idx])
+    segments = split_line_at_points(line, pts)
+    new_lines.extend(segments)
+
+
+# Plot all segments
+for line in new_lines:
+    ax[0].plot(line.x, line.y, color='b')
+
+# Find Polygons
+edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
+print("Finding Polygons...")
+G = nx.Graph()
+G.add_edges_from(edges)
+polys = nx.minimum_cycle_basis(G)
+print("Detected polygons:", polys)
+print("Number of Polygons:", len(polys))
+totalverts=0
+
+# Data
 listPolySizes=[]
 listPolyAreas=[]
 vBarLines=[]
@@ -230,14 +266,13 @@ for poly in polys:
     totalverts+=len(poly)
     listPolySizes.append(len(poly))
     listPolyAreas.append(areaOfPoly(poly))
-    vBarLines.append(totalverts/len(listPolySizes))
-    
+    vBarLines.append(totalverts/len(listPolySizes))    
 print("Average number of vertices:", totalverts/(len(polys))) 
 indeces=[]
 for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
-
+# Plotting data
 ax[1].hist(listPolySizes)
 ax[1].set_xlabel("Number of Sides")
 ax[1].set_ylabel("Number of Polygons")
@@ -249,6 +284,10 @@ ax[3].set_xlabel("Number of Polygons")
 ax[3].set_ylabel("Avg. Number of Sides")
 plt.subplot_tool()
 plt.show()
+
+
+#p=pick_a_poly(polys)
+#cut_a_poly(p)
 
 '''
 Pick a random polygon
