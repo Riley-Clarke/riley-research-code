@@ -244,19 +244,19 @@ lines += border_lines
 
 
 intersections=find_intersections(lines)
-new_lines = []
+final_lines = []
 for idx, line in enumerate(lines):
     pts = list(intersections[idx])
     segments = split_line_at_points(line, pts)
-    new_lines.extend(segments)
+    final_lines.extend(segments)
 
 
 # Plot all segments
-for line in new_lines:
+for line in final_lines:
     ax[0].plot(line.x, line.y, color='b')
 
 # Find Polygons
-edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in new_lines]
+edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
 print("Finding Polygons...")
 G = nx.Graph()
 G.add_edges_from(edges)
