@@ -116,6 +116,22 @@ class Line:
 
 # ------------------------------------------------------------------------------
 
+# -------------------------------Polygon Class----------------------------------
+class Polygon:
+    _id_counter = 0  # class variable for unique IDs
+    lines=[]
+    def init(self, vertices, id=None):
+        self.vertices=vertices
+        if id is not None:
+            self.id = id
+        else:
+            self.id = Polygon._id_counter
+            Polygon._id_counter += 1
+
+
+
+
+
 #=============================== HELPER FUNCTIONS ======================================
 
 
@@ -202,7 +218,9 @@ def pick_a_point(v1, v2):
     return vert
     
 # TODO NEED TO FIND SOME WAY TO GET THE LINES THEMSELVES INTO THE CUT_A_POLY METHOD
-
+'''
+Possibly make a polygon class with a list of vertices and lines?
+'''
 
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly):
