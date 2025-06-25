@@ -184,35 +184,42 @@ def areaOfPoly(poly):
     return A
 
 
-#pick a random polygon from a list of polygons
+# Pick a random polygon from a list of polygons
 def pick_a_poly(polys):
-    poly=random.randint(0, len(polys))
-    return poly
+    print(len(polys))
+    poly=random.randint(0, len(polys)-1)
+    print(poly)
+    return polys[poly]
 
-#pick a random point along a line
-def pick_a_point(line):
-    x = round(random.uniform(line.v1.x, line.v2.x), digits)
-    y = round(random.uniform(line.v1.y, line.v2.y), digits)
+# Pick a random point along a line
+def pick_a_point(v1, v2):
+    print(v1)
+    print(v2)
+    x = round(random.uniform(v1[0], v2[0]), digits)
+    y = round(random.uniform(v1[1], v2[1]), digits)
     vert=Vertex(x, y)
+    print(vert)
     return vert
     
+# TODO NEED TO FIND SOME WAY TO GET THE LINES THEMSELVES INTO THE CUT_A_POLY METHOD
+
 
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly):
-    s1=random.randint(0, len(poly))
-    s2=random.randint(0, len(poly))
+    s1=random.randint(1, len(poly))
+    s2=random.randint(1, len(poly))
     while(s1==s2):
-        s2=random.randint(0, len(poly))
-    p1=pick_a_point(poly[s1])
-    p2=pick_a_point(poly[s2])
+        s2=random.randint(1, len(poly))
+    p1=pick_a_point(poly[s1-1], poly[s1])
+    p2=pick_a_point(poly[s2-1], poly[s2])
     points=[p1, p2]
     lines=[]
     line= Line(p1, p2)
     lines.append(line)
-    l1=split_line_at_points(s1, points)
-    l2=split_line_at_points(s2, points)
-    lines.extend(l1)
-    lines.extend(l2)
+    split_l1=split_line_at_points(s1, points)
+    split_l2=split_line_at_points(s2, points)
+    lines.extend(split_l1)
+    lines.extend(split_l2)
     cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in lines]
     graph=nx.graph()
     graph.add_edges_from(cut_edges)
@@ -272,6 +279,10 @@ indeces=[]
 for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
+p=pick_a_poly(polys)
+cut_a_poly(p)
+
+
 # Plotting data
 ax[1].hist(listPolySizes)
 ax[1].set_xlabel("Number of Sides")
@@ -285,9 +296,6 @@ ax[3].set_ylabel("Avg. Number of Sides")
 plt.subplot_tool()
 plt.show()
 
-
-#p=pick_a_poly(polys)
-#cut_a_poly(p)
 
 '''
 Pick a random polygon
