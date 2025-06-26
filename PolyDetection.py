@@ -25,12 +25,17 @@ class Vertex:
     def __init__(self, x, y):
         self.x = float(x)
         self.y = float(y)
+        self.tp= (float(x), float(y))
     def __eq__(self, other):
         return np.isclose(self.x, other.x) and np.isclose(self.y, other.y)
+    def __eqtp__(self, other):
+        return np.isclose(self[0], other[0]) and np.isclose(self[1], other[1])
     def __hash__(self):
         return hash((round(self.x, 6), round(self.y, 6)))
     def __repr__(self):
         return f"Vertex({self.x:.4f}, {self.y:.4f})"
+    def as_tuple(self):
+        return (self.x, self.y)
 
 #---------------------------------------------------------------------------
 
@@ -80,13 +85,15 @@ class Line:
             Line._id_counter += 1
         self.intersections = []
         self.intersected_lines = set()
-        self.x = [self.v1.x, self.v2.x]
-        self.y = [self.v1.y, self.v2.y]
+        # TODO CHANGED SELF.X AND Y TO TUPLES FOR TESTING PURPOSES AND ADDED P1 AND P2 AS TUPLES
+        self.x = (self.v1.x, self.v2.x)
+        self.y = (self.v1.y, self.v2.y)
+        self.p1= (self.v1.x, self.v1.y)
+        self.p2= (self.v2.x, self.v2.y)
     def __str__(self):
         return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
-    
     def intersect(self, other):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
@@ -158,14 +165,14 @@ def find_intersections(lines):
 # Split lines at intersection points
 def split_line_at_points(line, points):
     # Sort points along the line
-    if abs(line.v1.x - line.v2.x) > abs(line.v1.y - line.v2.y):
+    if abs(line.p1[0] - line.p2[0]) > abs(line.p1[1] - line.p2[1]):
         points = sorted(points, key=lambda v: v.x)
     else:
         points = sorted(points, key=lambda v: v.y)
     segments = []
     # Remove duplicate points (using set), then sort again
     unique_points = list(set(points))
-    if abs(line.v1.x - line.v2.x) > abs(line.v1.y - line.v2.y):
+    if abs(line.p1[0] - line.p2[0]) > abs(line.p1[1] - line.p2[1]):
         unique_points.sort(key=lambda v: v.x)
     else:
         unique_points.sort(key=lambda v: v.y)
@@ -209,40 +216,80 @@ def pick_a_poly(polys):
 
 # Pick a random point along a line
 def pick_a_point(v1, v2):
-    print(v1)
-    print(v2)
-    x = round(random.uniform(v1[0], v2[0]), digits)
-    y = round(random.uniform(v1[1], v2[1]), digits)
-    vert=Vertex(x, y)
-    print(vert)
-    return vert
+    # v1 and v2 are Vertex objects
+    t = random.uniform(0, 1)
+    # Ensure t is not 0 or 1 (not endpoints)
+    while np.isclose(t, 0) or np.isclose(t, 1):
+        t = random.uniform(0, 1)
+    x = v1[0] + t * (v2[0] - v1[0])
+    y = v1[1] + t * (v2[1] - v1[1])
+    return Vertex(round(x, digits), round(y, digits))
+
     
 # TODO NEED TO FIND SOME WAY TO GET THE LINES THEMSELVES INTO THE CUT_A_POLY METHOD
 '''
 Possibly make a polygon class with a list of vertices and lines?
+Just make the lines based on the vertices
+polygon detection just on the new lines
 '''
 
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
-def cut_a_poly(poly):
-    s1=random.randint(1, len(poly))
-    s2=random.randint(1, len(poly))
+def cut_a_poly(poly, poly_list):
+    print(poly)
+    s1=random.randint(0, len(poly)-1)
+    s2=random.randint(0, len(poly)-1)
     while(s1==s2):
-        s2=random.randint(1, len(poly))
-    p1=pick_a_point(poly[s1-1], poly[s1])
-    p2=pick_a_point(poly[s2-1], poly[s2])
+        s2=random.randint(0, len(poly)-1)
+    print(f"S1:{s1}, S2:{s2}, len:{len(poly)}")
+    p1=None
+    p2=None
+    if(s1==len(poly)-1):
+        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[0]}")
+        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[s2+1]}")
+        p1=pick_a_point(poly[s1], poly[0])
+        p2=pick_a_point(poly[s2], poly[s2+1])
+    elif(s2==len(poly)-1):
+        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[s1+1]}")
+        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[0]}")
+        p1=pick_a_point(poly[s1], poly[s1+1])
+        p2=pick_a_point(poly[s2], poly[0])
+    else:
+        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[s1+1]}")
+        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[s2+1]}")
+        p1=pick_a_point(poly[s1], poly[s1+1])
+        p2=pick_a_point(poly[s2], poly[s2+1])
     points=[p1, p2]
     lines=[]
-    line= Line(p1, p2)
-    lines.append(line)
-    split_l1=split_line_at_points(s1, points)
-    split_l2=split_line_at_points(s2, points)
-    lines.extend(split_l1)
-    lines.extend(split_l2)
-    cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in lines]
-    graph=nx.graph()
+    for v in range(len(poly)):
+        if(v==len(poly)-1):
+            v1=Vertex(poly[v][0], poly[v][1])
+            v2=Vertex(poly[0][0], poly[0][1])
+            lines.append(Line(v1, v2))
+        else:
+            v1=Vertex(poly[v][0], poly[v][1])
+            v2=Vertex(poly[v+1][0], poly[v+1][1])
+            lines.append(Line(v1, v2))
+    n_line= Line(p1, p2)
+    ax[0].plot(n_line.x, n_line.y, color='r')
+    print(f"New Line: {n_line}")
+    lines.append(n_line)
+
+    intersections=find_intersections(lines)
+    final_lines = []
+    for idx, line in enumerate(lines):
+        pts = list(intersections[idx])
+        segments = split_line_at_points(line, pts)
+        final_lines.extend(segments)
+
+    cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
+    graph=nx.Graph()
     graph.add_edges_from(cut_edges)
     new_polys=nx.minimum_cycle_basis(graph)
-    for p in new_polys:print(f"Cut Poly:{p}") 
+    for p in new_polys:
+        print(f"Cut Poly:{p}") 
+        poly_list.append(p)
+    poly_list.remove(poly)
+    
 
 #=============================== END HELPER FUNCTIONS ======================================
 
@@ -251,7 +298,7 @@ def cut_a_poly(poly):
 
 
 # Add random lines and border lines
-lines = create_lines(3)
+lines = create_lines(5)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -298,7 +345,8 @@ for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
 p=pick_a_poly(polys)
-cut_a_poly(p)
+cut_a_poly(p, polys)
+print(f"Polygons after cut:{polys}")
 
 
 # Plotting data
