@@ -51,7 +51,7 @@ corners = [
 
 # --------------------------------- Line Class ---------------------------------
 
-digits = 4
+digits = 3
 
 class Line:
     _id_counter = 0  # class variable for unique IDs
@@ -122,21 +122,6 @@ class Line:
         return None
 
 # ------------------------------------------------------------------------------
-
-# -------------------------------Polygon Class----------------------------------
-class Polygon:
-    _id_counter = 0  # class variable for unique IDs
-    lines=[]
-    def init(self, vertices, id=None):
-        self.vertices=vertices
-        if id is not None:
-            self.id = id
-        else:
-            self.id = Polygon._id_counter
-            Polygon._id_counter += 1
-
-
-
 
 
 #=============================== HELPER FUNCTIONS ======================================
@@ -209,9 +194,7 @@ def areaOfPoly(poly):
 
 # Pick a random polygon from a list of polygons
 def pick_a_poly(polys):
-    print(len(polys))
     poly=random.randint(0, len(polys)-1)
-    print(poly)
     return polys[poly]
 
 # Pick a random point along a line
@@ -240,22 +223,15 @@ def cut_a_poly(poly, poly_list):
     s2=random.randint(0, len(poly)-1)
     while(s1==s2):
         s2=random.randint(0, len(poly)-1)
-    print(f"S1:{s1}, S2:{s2}, len:{len(poly)}")
     p1=None
     p2=None
     if(s1==len(poly)-1):
-        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[0]}")
-        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[s2+1]}")
         p1=pick_a_point(poly[s1], poly[0])
         p2=pick_a_point(poly[s2], poly[s2+1])
     elif(s2==len(poly)-1):
-        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[s1+1]}")
-        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[0]}")
         p1=pick_a_point(poly[s1], poly[s1+1])
         p2=pick_a_point(poly[s2], poly[0])
     else:
-        print(f"S1 V1:{poly[s1]}, S1 V2:{poly[s1+1]}")
-        print(f"S2 V1:{poly[s2]}, S2 V2:{poly[s2+1]}")
         p1=pick_a_point(poly[s1], poly[s1+1])
         p2=pick_a_point(poly[s2], poly[s2+1])
     points=[p1, p2]
@@ -271,24 +247,28 @@ def cut_a_poly(poly, poly_list):
             lines.append(Line(v1, v2))
     n_line= Line(p1, p2)
     ax[0].plot(n_line.x, n_line.y, color='r')
-    print(f"New Line: {n_line}")
+    print(f"New Line: {n_line}\n")
     lines.append(n_line)
 
     intersections=find_intersections(lines)
     final_lines = []
+    print(intersections, "\n")
     for idx, line in enumerate(lines):
         pts = list(intersections[idx])
         segments = split_line_at_points(line, pts)
         final_lines.extend(segments)
 
     cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
+    print(f"Cut edges {cut_edges}\n")
     graph=nx.Graph()
     graph.add_edges_from(cut_edges)
     new_polys=nx.minimum_cycle_basis(graph)
+    print("Num new polys: ", len(new_polys))
     for p in new_polys:
-        print(f"Cut Poly:{p}") 
+        print(f"Cut Poly:{p}\n") 
         poly_list.append(p)
     poly_list.remove(poly)
+    return poly_list
     
 
 #=============================== END HELPER FUNCTIONS ======================================
@@ -298,7 +278,7 @@ def cut_a_poly(poly, poly_list):
 
 
 # Add random lines and border lines
-lines = create_lines(5)
+lines = create_lines(3)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -344,9 +324,11 @@ indeces=[]
 for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
-p=pick_a_poly(polys)
-cut_a_poly(p, polys)
-print(f"Polygons after cut:{polys}")
+for i in range(0,3):
+    p=pick_a_poly(polys)
+    polys=cut_a_poly(p, polys)
+    print(f"Polygons after cut:{polys}")
+    print(len(polys))
 
 
 # Plotting data
