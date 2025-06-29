@@ -31,9 +31,9 @@ class Vertex:
     def __eqtp__(self, other):
         return np.isclose(self[0], other[0]) and np.isclose(self[1], other[1])
     def __hash__(self):
-        return hash((round(self.x, 6), round(self.y, 6)))
+        return hash((round(self.x, digits), round(self.y, digits)))
     def __repr__(self):
-        return f"Vertex({self.x:.4f}, {self.y:.4f})"
+        return f"Vertex({self.x:.3f}, {self.y:.3f})"
     def as_tuple(self):
         return (self.x, self.y)
 
@@ -209,11 +209,13 @@ def pick_a_point(v1, v2):
     return Vertex(round(x, digits), round(y, digits))
 
     
-# TODO NEED TO FIND SOME WAY TO GET THE LINES THEMSELVES INTO THE CUT_A_POLY METHOD
 '''
-Possibly make a polygon class with a list of vertices and lines?
-Just make the lines based on the vertices
-polygon detection just on the new lines
+
+
+ISSUE: Method of picking a point on the line is not exact enough. If it is on a line that is not on a border, the lines are very very close. 
+Need to find some way to check intersection or pick a point that is more exact.
+
+
 '''
 
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
@@ -278,7 +280,7 @@ def cut_a_poly(poly, poly_list):
 
 
 # Add random lines and border lines
-lines = create_lines(3)
+lines = create_lines(2)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
