@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import random
 import networkx as nx
+from collections import Counter
+import json
 
 
 
@@ -94,7 +96,7 @@ class Line:
         return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
-    def intersect(self, other):
+    def intersect(self, other, tol=0.005):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
         x2, y2 = self.v2.x, self.v2.y
@@ -108,9 +110,9 @@ class Line:
         px = ((x1*y2 - y1*x2)*(x3-x4) - (x1-x2)*(x3*y4 - y3*x4)) / denom
         py = ((x1*y2 - y1*x2)*(y3-y4) - (y1-y2)*(x3*y4 - y3*x4)) / denom
 
-        # Check if intersection is within both segments
+        # Check if intersection is within both segments (with tolerance)
         def between(a, b, c):
-            return min(a, b) - 1e-8 <= c <= max(a, b) + 1e-8
+            return (min(a, b) - tol <= c <= max(a, b) + tol) or np.isclose(c, a, atol=tol) or np.isclose(c, b, atol=tol)
 
         if (between(x1, x2, px) and between(y1, y2, py) and
             between(x3, x4, px) and between(y3, y4, py)):
@@ -206,6 +208,7 @@ def pick_a_point(v1, v2):
         t = random.uniform(0, 1)
     x = v1[0] + t * (v2[0] - v1[0])
     y = v1[1] + t * (v2[1] - v1[1])
+    
     return Vertex(round(x, digits), round(y, digits))
 
     
@@ -254,7 +257,6 @@ def cut_a_poly(poly, poly_list):
 
     intersections=find_intersections(lines)
     final_lines = []
-    print(intersections, "\n")
     for idx, line in enumerate(lines):
         pts = list(intersections[idx])
         segments = split_line_at_points(line, pts)
@@ -265,6 +267,7 @@ def cut_a_poly(poly, poly_list):
     graph=nx.Graph()
     graph.add_edges_from(cut_edges)
     new_polys=nx.minimum_cycle_basis(graph)
+    #Possibly hardcode it to make sure the length of new polys is 2 after every cut?
     print("Num new polys: ", len(new_polys))
     for p in new_polys:
         print(f"Cut Poly:{p}\n") 
@@ -313,6 +316,18 @@ print("Number of Polygons:", len(polys))
 totalverts=0
 
 # Data
+
+num_ngons=[]
+
+
+for i in range(0,3):
+    p=pick_a_poly(polys)
+    polys=cut_a_poly(p, polys)
+    side_counts=Counter(len(poly) for poly in polys)
+    num_ngons.append(dict(side_counts))
+    print(f"Polygons after cut:{polys}")
+    print(len(polys))
+
 listPolySizes=[]
 listPolyAreas=[]
 vBarLines=[]
@@ -326,11 +341,10 @@ indeces=[]
 for i in range(0,len(listPolyAreas)):
     indeces.append(i)
 
-for i in range(0,3):
-    p=pick_a_poly(polys)
-    polys=cut_a_poly(p, polys)
-    print(f"Polygons after cut:{polys}")
-    print(len(polys))
+
+# Save num_ngons to a file
+with open("ngon_counts_per_cut.json", "w") as f:
+    json.dump(num_ngons, f, indent=2)
 
 
 # Plotting data
@@ -345,6 +359,7 @@ ax[3].set_xlabel("Number of Polygons")
 ax[3].set_ylabel("Avg. Number of Sides")
 plt.subplot_tool()
 plt.show()
+
 
 
 '''
