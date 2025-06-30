@@ -96,7 +96,7 @@ class Line:
         return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
-    def intersect(self, other, tol=0.005):
+    def intersect(self, other, tol=0.001):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
         x2, y2 = self.v2.x, self.v2.y
@@ -251,7 +251,6 @@ def cut_a_poly(poly, poly_list):
             v2=Vertex(poly[v+1][0], poly[v+1][1])
             lines.append(Line(v1, v2))
     n_line= Line(p1, p2)
-    ax[0].plot(n_line.x, n_line.y, color='r')
     print(f"New Line: {n_line}\n")
     lines.append(n_line)
 
@@ -268,12 +267,16 @@ def cut_a_poly(poly, poly_list):
     graph.add_edges_from(cut_edges)
     new_polys=nx.minimum_cycle_basis(graph)
     #Possibly hardcode it to make sure the length of new polys is 2 after every cut?
-    print("Num new polys: ", len(new_polys))
-    for p in new_polys:
-        print(f"Cut Poly:{p}\n") 
-        poly_list.append(p)
-    poly_list.remove(poly)
-    return poly_list
+    if(len(new_polys)==2):
+        print("Num new polys: ", len(new_polys))
+        for p in new_polys:
+            print(f"Cut Poly:{p}\n") 
+            poly_list.append(p)
+        ax[0].plot(n_line.x, n_line.y, color='r')
+        poly_list.remove(poly)
+        return poly_list
+    else:
+        return cut_a_poly(poly, poly_list)
     
 
 #=============================== END HELPER FUNCTIONS ======================================
@@ -283,7 +286,7 @@ def cut_a_poly(poly, poly_list):
 
 
 # Add random lines and border lines
-lines = create_lines(2)
+lines = create_lines(15)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
@@ -320,14 +323,13 @@ totalverts=0
 num_ngons=[]
 
 
-for i in range(0,3):
+for i in range(0,100):
     p=pick_a_poly(polys)
     polys=cut_a_poly(p, polys)
     side_counts=Counter(len(poly) for poly in polys)
     num_ngons.append(dict(side_counts))
-    print(f"Polygons after cut:{polys}")
-    print(len(polys))
-
+    print(len(polys), "\n")
+print(f"Polygons after cut:{polys}")
 listPolySizes=[]
 listPolyAreas=[]
 vBarLines=[]
