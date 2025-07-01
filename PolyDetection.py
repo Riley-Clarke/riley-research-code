@@ -222,61 +222,62 @@ Need to find some way to check intersection or pick a point that is more exact.
 '''
 
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
-def cut_a_poly(poly, poly_list):
-    print(poly)
-    s1=random.randint(0, len(poly)-1)
-    s2=random.randint(0, len(poly)-1)
-    while(s1==s2):
+def cut_a_poly(poly, poly_list, max_attempts=10):
+    for attempt in range(max_attempts):
+        print(poly)
+        s1=random.randint(0, len(poly)-1)
         s2=random.randint(0, len(poly)-1)
-    p1=None
-    p2=None
-    if(s1==len(poly)-1):
-        p1=pick_a_point(poly[s1], poly[0])
-        p2=pick_a_point(poly[s2], poly[s2+1])
-    elif(s2==len(poly)-1):
-        p1=pick_a_point(poly[s1], poly[s1+1])
-        p2=pick_a_point(poly[s2], poly[0])
-    else:
-        p1=pick_a_point(poly[s1], poly[s1+1])
-        p2=pick_a_point(poly[s2], poly[s2+1])
-    points=[p1, p2]
-    lines=[]
-    for v in range(len(poly)):
-        if(v==len(poly)-1):
-            v1=Vertex(poly[v][0], poly[v][1])
-            v2=Vertex(poly[0][0], poly[0][1])
-            lines.append(Line(v1, v2))
+        while(s1==s2):
+            s2=random.randint(0, len(poly)-1)
+        p1=None
+        p2=None
+        if(s1==len(poly)-1):
+            p1=pick_a_point(poly[s1], poly[0])
+            p2=pick_a_point(poly[s2], poly[s2+1])
+        elif(s2==len(poly)-1):
+            p1=pick_a_point(poly[s1], poly[s1+1])
+            p2=pick_a_point(poly[s2], poly[0])
         else:
-            v1=Vertex(poly[v][0], poly[v][1])
-            v2=Vertex(poly[v+1][0], poly[v+1][1])
-            lines.append(Line(v1, v2))
-    n_line= Line(p1, p2)
-    print(f"New Line: {n_line}\n")
-    lines.append(n_line)
+            p1=pick_a_point(poly[s1], poly[s1+1])
+            p2=pick_a_point(poly[s2], poly[s2+1])
+        points=[p1, p2]
+        lines=[]
+        for v in range(len(poly)):
+            if(v==len(poly)-1):
+                v1=Vertex(poly[v][0], poly[v][1])
+                v2=Vertex(poly[0][0], poly[0][1])
+                lines.append(Line(v1, v2))
+            else:
+                v1=Vertex(poly[v][0], poly[v][1])
+                v2=Vertex(poly[v+1][0], poly[v+1][1])
+                lines.append(Line(v1, v2))
+        n_line= Line(p1, p2)
+        print(f"New Line: {n_line}\n")
+        lines.append(n_line)
 
-    intersections=find_intersections(lines)
-    final_lines = []
-    for idx, line in enumerate(lines):
-        pts = list(intersections[idx])
-        segments = split_line_at_points(line, pts)
-        final_lines.extend(segments)
+        intersections=find_intersections(lines)
+        final_lines = []
+        for idx, line in enumerate(lines):
+            pts = list(intersections[idx])
+            segments = split_line_at_points(line, pts)
+            final_lines.extend(segments)
 
-    cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
-    print(f"Cut edges {cut_edges}\n")
-    graph=nx.Graph()
-    graph.add_edges_from(cut_edges)
-    new_polys=nx.minimum_cycle_basis(graph)
-    #Possibly hardcode it to make sure the length of new polys is 2 after every cut?
-    if(len(new_polys)==2):
-        print("Num new polys: ", len(new_polys))
-        for p in new_polys:
-            print(f"Cut Poly:{p}\n") 
-            poly_list.append(p)
-        ax[0].plot(n_line.x, n_line.y, color='r')
-        poly_list.remove(poly)
-        return poly_list
-    else:
-        return cut_a_poly(poly, poly_list)
+        cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
+        print(f"Cut edges {cut_edges}\n")
+        graph=nx.Graph()
+        graph.add_edges_from(cut_edges)
+        new_polys=nx.minimum_cycle_basis(graph)
+        #Possibly hardcode it to make sure the length of new polys is 2 after every cut?
+        if(len(new_polys)==2):
+            print("Num new polys: ", len(new_polys))
+            for p in new_polys:
+                print(f"Cut Poly:{p}\n") 
+                poly_list.append(p)
+            ax[0].plot(n_line.x, n_line.y, color='r')
+            poly_list.remove(poly)
+            return poly_list
+    print("Max attempts reached, skipping this cut.")
+    return poly_list
     
 
 #=============================== END HELPER FUNCTIONS ======================================
