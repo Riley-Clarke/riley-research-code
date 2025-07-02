@@ -8,7 +8,6 @@ import torch.optim as optim
 
 '''
 Make a set of training data and a set of testing data
-Try scaling tensor data
 Plot the graph from notebook
 '''
 
@@ -27,9 +26,9 @@ t_torch = torch.tensor(t/tscale, requires_grad=False, dtype=torch.float32)
 for d in data:
     vec = [d.get(str(n), 0) for n in all_ngons]
     tensor_data.append(vec)
-
-#data_scale=tensor_data.max()-tensor_data.min()
-tensor_data = torch.tensor(tensor_data,requires_grad=False, dtype=torch.float32)
+tensor_data=np.array(tensor_data)
+data_scale=tensor_data.max()-tensor_data.min()
+tensor_data = torch.tensor(tensor_data/data_scale,requires_grad=False, dtype=torch.float32)
 layer_len=len(tensor_data[0])
 
 
