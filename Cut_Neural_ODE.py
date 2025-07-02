@@ -7,7 +7,9 @@ import torch.nn as nn
 import torch.optim as optim
 
 '''
-Need to get data to be the same shape for multiplication!
+Make a set of training data and a set of testing data
+Try scaling tensor data
+Plot the graph from notebook
 '''
 
 
@@ -26,7 +28,9 @@ for d in data:
     vec = [d.get(str(n), 0) for n in all_ngons]
     tensor_data.append(vec)
 
-tensor_data = torch.tensor(tensor_data, dtype=torch.float32)
+#data_scale=tensor_data.max()-tensor_data.min()
+tensor_data = torch.tensor(tensor_data,requires_grad=False, dtype=torch.float32)
+layer_len=len(tensor_data[0])
 
 
 print("Tensor shape:", tensor_data.shape)
@@ -38,10 +42,10 @@ print(t_torch)
 class ODEFunc(nn.Module):
     def __init__(self):
         super(ODEFunc, self).__init__()
-        input_size = 2
+        input_size = layer_len
         hidden_size = 40
         hidden_layers = 3
-        output_size = 2
+        output_size = layer_len
 
         # This is a complicated function - it will use lists to build as many hidden layers as we asked for
         # For an explanation - ask Gemini "explain how self.net is constructed"
@@ -86,3 +90,6 @@ for epoch in range(500):
     optimizer.step()
     if epoch % 50 == 0:
         print(f'Epoch {epoch}, Loss: {loss.item()}')
+
+# Evaluate the trained model
+y_pred = neural_ode(y0, t_torch).detach().numpy()

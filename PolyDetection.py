@@ -287,14 +287,14 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
 
 
 # Add random lines and border lines
-lines = create_lines(15)
+#lines = create_lines(15)
 border_lines = [
     Line(corners[0], corners[1]),
     Line(corners[1], corners[2]),
     Line(corners[2], corners[3]),
     Line(corners[3], corners[0])
 ]
-lines += border_lines
+lines = border_lines
 
 
 intersections=find_intersections(lines)
@@ -324,7 +324,7 @@ totalverts=0
 num_ngons=[]
 
 
-for i in range(0,100):
+for i in range(0,50):
     p=pick_a_poly(polys)
     polys=cut_a_poly(p, polys)
     side_counts=Counter(len(poly) for poly in polys)
