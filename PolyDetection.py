@@ -323,7 +323,7 @@ totalverts=0
 num_ngons=[]
 
 
-for i in range(0,100):
+for i in range(0,300):
     p=pick_a_poly(polys)
     polys=cut_a_poly(p, polys)
     side_counts=Counter(len(poly) for poly in polys)
@@ -346,7 +346,7 @@ for i in range(0,len(listPolyAreas)):
 
 
 # Save num_ngons to a file
-with open("ngon_counts_per_cut.json", "w") as f:
+with open("ngon_counts_per_cut_TESTING.json", "w") as f:
     json.dump(num_ngons, f, indent=2)
 
 

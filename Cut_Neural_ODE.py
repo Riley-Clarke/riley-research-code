@@ -5,6 +5,7 @@ import torch
 from torchdiffeq import odeint
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.cm as cm
 
 '''
 Make a set of training data and a set of testing data
@@ -92,3 +93,45 @@ for epoch in range(500):
 
 # Evaluate the trained model
 y_pred = neural_ode(y0, t_torch).detach().numpy()
+
+
+# Plot the results
+plt.figure(figsize=(10, 5))
+cmap = cm.get_cmap('tab10', layer_len)  # or use another colormap if you have more than 10 n-gons
+for i in range(layer_len):
+    color = cmap(i)
+    plt.plot(t_torch.numpy()*tscale, tensor_data[:, i].numpy()*data_scale, color=color, label=f'{i+3}-gons')
+    plt.plot(t_torch.numpy()*tscale, y_pred[:, i]*data_scale, '--', color=color, label=f'Predicted {i+3}-gons')
+
+plt.xlabel('Cuts')
+plt.ylabel('Values')
+plt.legend()
+plt.title('Comparison of Target and Predicted Values')
+plt.show()
+
+with open('ngon_counts_per_cut_TESTING.json', 'r') as f:
+    test_data = json.load(f)
+
+# Prepare test tensor (same as training)
+test_tensor_data = []
+for d in test_data:
+    vec = [d.get(str(n), 0) for n in all_ngons]  # Use same all_ngons as training
+    test_tensor_data.append(vec)
+test_tensor_data = np.array(test_tensor_data)
+test_tensor_data = torch.tensor(test_tensor_data/data_scale, requires_grad=False, dtype=torch.float32)
+test_t = np.linspace(0, len(test_tensor_data), len(test_tensor_data), endpoint=False)
+test_torch = torch.tensor(test_t/tscale, requires_grad=False, dtype=torch.float32)
+
+# Use the first test value as initial condition
+y0_test = test_tensor_data[0, :]
+y_pred_test = neural_ode(y0_test, test_torch).detach().numpy()
+plt.figure(figsize=(10, 5))
+for i in range(layer_len):
+    color = cmap(i)
+    plt.plot(test_torch.numpy()*tscale, test_tensor_data[:, i].numpy()*data_scale, color=color, label=f'Test {i+3}-gons')
+    plt.plot(test_torch.numpy()*tscale, y_pred_test[:, i]*data_scale, '--', color=color, label=f'Predicted {i+3}-gons')
+plt.xlabel('Cuts')
+plt.ylabel('Values')
+plt.legend()
+plt.title('Test Data: Target vs Predicted')
+plt.show()
