@@ -94,19 +94,35 @@ for epoch in range(500):
 # Evaluate the trained model
 y_pred = neural_ode(y0, t_torch).detach().numpy()
 
-
+'''
 # Plot the results
 plt.figure(figsize=(10, 5))
 cmap = cm.get_cmap('tab10', layer_len)  # or use another colormap if you have more than 10 n-gons
 for i in range(layer_len):
     color = cmap(i)
-    plt.plot(t_torch.numpy()*tscale, tensor_data[:, i].numpy()*data_scale, color=color, label=f'{i+3}-gons')
-    plt.plot(t_torch.numpy()*tscale, y_pred[:, i]*data_scale, '--', color=color, label=f'Predicted {i+3}-gons')
+    plt.plot(t_torch.numpy(), (tensor_data[:, i].numpy()), color=color, label=f'{i+3}-gons')
+    plt.plot(t_torch.numpy(), y_pred[:, i], '--', color=color, label=f'Predicted {i+3}-gons')
 
 plt.xlabel('Cuts')
 plt.ylabel('Values')
 plt.legend()
 plt.title('Comparison of Target and Predicted Values')
+plt.show()
+'''
+# --- Training data plot ---
+plt.figure(figsize=(10, 5))
+cmap = cm.get_cmap('tab10', layer_len)
+# Compute fractions for actual and predicted
+actual_fractions = tensor_data.numpy() / tensor_data.numpy().sum(axis=1, keepdims=True)
+pred_fractions = y_pred / y_pred.sum(axis=1, keepdims=True)
+for i in range(layer_len):
+    color = cmap(i)
+    plt.plot(t_torch.numpy(), actual_fractions[:, i], color=color, label=f'{i+3}-gons')
+    plt.plot(t_torch.numpy(), pred_fractions[:, i], '--', color=color, label=f'Predicted {i+3}-gons')
+plt.xlabel('Cuts')
+plt.ylabel('Fraction of n-gons')
+plt.legend()
+plt.title('Fraction of Each n-gon: Target vs Predicted')
 plt.show()
 
 with open('ngon_counts_per_cut_TESTING.json', 'r') as f:
@@ -125,13 +141,28 @@ test_torch = torch.tensor(test_t/tscale, requires_grad=False, dtype=torch.float3
 # Use the first test value as initial condition
 y0_test = test_tensor_data[0, :]
 y_pred_test = neural_ode(y0_test, test_torch).detach().numpy()
+'''
 plt.figure(figsize=(10, 5))
 for i in range(layer_len):
     color = cmap(i)
-    plt.plot(test_torch.numpy()*tscale, test_tensor_data[:, i].numpy()*data_scale, color=color, label=f'Test {i+3}-gons')
-    plt.plot(test_torch.numpy()*tscale, y_pred_test[:, i]*data_scale, '--', color=color, label=f'Predicted {i+3}-gons')
+    plt.plot(test_torch.numpy(), test_tensor_data[:, i].numpy(), color=color, label=f'Test {i+3}-gons')
+    plt.plot(test_torch.numpy(), y_pred_test[:, i], '--', color=color, label=f'Predicted {i+3}-gons')
 plt.xlabel('Cuts')
 plt.ylabel('Values')
 plt.legend()
 plt.title('Test Data: Target vs Predicted')
+plt.show()
+'''
+# --- Test data plot ---
+plt.figure(figsize=(10, 5))
+test_actual_fractions = test_tensor_data.numpy() / test_tensor_data.numpy().sum(axis=1, keepdims=True)
+test_pred_fractions = y_pred_test / y_pred_test.sum(axis=1, keepdims=True)
+for i in range(layer_len):
+    color = cmap(i)
+    plt.plot(test_torch.numpy(), test_actual_fractions[:, i], color=color, label=f'Test {i+3}-gons')
+    plt.plot(test_torch.numpy(), test_pred_fractions[:, i], '--', color=color, label=f'Predicted {i+3}-gons')
+plt.xlabel('Cuts')
+plt.ylabel('Fraction of n-gons')
+plt.legend()
+plt.title('Test Data: Fraction of Each n-gon')
 plt.show()
