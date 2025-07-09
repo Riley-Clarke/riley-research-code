@@ -153,6 +153,8 @@ plt.legend()
 plt.title('Test Data: Target vs Predicted')
 plt.show()
 '''
+
+
 # --- Test data plot ---
 plt.figure(figsize=(10, 5))
 test_actual_fractions = test_tensor_data.numpy() / test_tensor_data.numpy().sum(axis=1, keepdims=True)

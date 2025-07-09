@@ -293,8 +293,8 @@ border_lines = [
     Line(corners[2], corners[3]),
     Line(corners[3], corners[0])
 ]
+#lines += border_lines
 lines = border_lines
-
 
 intersections=find_intersections(lines)
 final_lines = []
@@ -322,8 +322,8 @@ totalverts=0
 
 num_ngons=[]
 
-
-for i in range(0,300):
+num_cuts=300
+for i in range(num_cuts):
     p=pick_a_poly(polys)
     polys=cut_a_poly(p, polys)
     side_counts=Counter(len(poly) for poly in polys)
@@ -346,7 +346,7 @@ for i in range(0,len(listPolyAreas)):
 
 
 # Save num_ngons to a file
-with open("ngon_counts_per_cut_TESTING.json", "w") as f:
+with open("ngon_counts_TESTING.json", "w") as f:
     json.dump(num_ngons, f, indent=2)
 
 
@@ -363,15 +363,4 @@ ax[3].set_ylabel("Avg. Number of Sides")
 plt.subplot_tool()
 plt.show()
 
-
-
-'''
-Pick a random polygon
-Pick two random points (on different sides)
-Make a line connecting those two points
-Add the two new polygons to the list of polygons
-Remove the initial polygon
-Take the number of each n-gon after every cut. (DO THIS IN A SMART WAY. DONT JUST TAKE A RANDOM )
-
-'''
 
