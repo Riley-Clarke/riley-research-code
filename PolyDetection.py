@@ -346,7 +346,7 @@ for i in range(0,len(listPolyAreas)):
 
 
 # Save num_ngons to a file
-with open("ngon_counts_TESTING.json", "w") as f:
+with open("./neural_data/ngon_counts_per_cut_K.json", "w") as f:
     json.dump(num_ngons, f, indent=2)
 
 

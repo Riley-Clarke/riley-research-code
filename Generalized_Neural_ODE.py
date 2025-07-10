@@ -15,7 +15,7 @@ def load_ngon_data(json_files):
         with open(fname, 'r') as f:
             file_data = json.load(f)
             all_data.extend(file_data)
-    all_ngons = sorted({int(k) for d in all_data for k in d.keys()})
+    all_ngons = list(range(3, 11)) 
     tensor_data = []
     for d in all_data:
         vec = [d.get(str(n), 0) for n in all_ngons]
@@ -63,7 +63,7 @@ def train_neural_ode(tensor_data, t_torch, layer_len, epochs=200, lr=0.01):
             print(f'Epoch {epoch}, Loss: {loss.item()}')
     return neural_ode
 
-data_files = glob.glob('ngon_counts_per_cut*.json')  # or your pattern
+data_files = glob.glob('./neural_data/ngon_counts_per_cut*.json')  # or your pattern
 
 models = []
 for i, fname in enumerate(data_files):
@@ -71,13 +71,14 @@ for i, fname in enumerate(data_files):
     tensor_data, t_torch, layer_len, all_ngons, data_scale, tscale = load_ngon_data([fname])
     model = train_neural_ode(tensor_data, t_torch, layer_len)
     models.append(model)
-
+    
     # Evaluate the trained model
     y_pred = model(tensor_data[0, :], t_torch).detach().numpy()
-    plt.figure(figsize=(10, 5))
-    cmap = cm.get_cmap('tab10', layer_len)
+    #plt.figure(figsize=(10, 5))
+    #cmap = plt.get_cmap('tab10', layer_len)
     actual_fractions = tensor_data.numpy() / tensor_data.numpy().sum(axis=1, keepdims=True)
     pred_fractions = y_pred / y_pred.sum(axis=1, keepdims=True)
+    '''
     for j in range(layer_len):
         color = cmap(j)
         plt.plot(t_torch.numpy(), actual_fractions[:, j], color=color, label=f'{j+3}-gons')
@@ -87,9 +88,10 @@ for i, fname in enumerate(data_files):
     plt.legend()
     plt.title(f'Fraction of Each n-gon: Target vs Predicted (File {i+1})')
     plt.show()
+    '''
 
 # Load testing data (use the same all_ngons as in training for consistency)
-test_file = 'ngon_counts_TESTING.json'
+test_file = './neural_data/ngon_counts_TESTING.json'
 with open(test_file, 'r') as f:
     test_data = json.load(f)
 
@@ -119,7 +121,7 @@ for model_idx, model in enumerate(models):
             pred_fractions[:, j],
             linestyle='--',
             color=color,
-            alpha=0.5 + 0.5 * (model_idx / len(models)),  # Slightly different alpha for each model
+            alpha=0.25,  # Slightly different alpha for each model
             label=f'Model {model_idx+1} Pred {j+3}-gons' if model_idx == 0 else None  # Only label once per n-gon
         )
 
@@ -135,8 +137,89 @@ for j in range(layer_len):
         label=f'Actual {j+3}-gons'
     )
 
+# Collect all model predictions for averaging
+all_model_preds = []
+for model in models:
+    y0_test = test_tensor_data[0, :]
+    y_pred_test = model(y0_test, test_torch).detach().numpy()
+    pred_fractions = y_pred_test / y_pred_test.sum(axis=1, keepdims=True)
+    all_model_preds.append(pred_fractions)
+
+# Convert to numpy array: shape (num_models, num_timesteps, num_ngon_types)
+all_model_preds = np.array(all_model_preds)
+
+# Compute the average across models (axis=0 is models)
+avg_pred_fractions = np.mean(all_model_preds, axis=0)
+
+# Plot the average predictions
+for j in range(layer_len):
+    color = cmap(j)
+    plt.plot(
+        test_torch.numpy(),
+        avg_pred_fractions[:, j],
+        linestyle='-',
+        color=color,
+        linewidth=3,
+        label=f'Average Pred {j+3}-gons'
+    )
+
+
 plt.xlabel('Cuts')
 plt.ylabel('Fraction of n-gons')
 plt.title('Model Predictions on Test Data (All Models)')
+plt.legend()
+#plt.show()
+
+# Only plot 3, 4, and 5-gons
+desired_ngons = [3, 4, 5]
+desired_indices = [all_ngons.index(n) for n in desired_ngons if n in all_ngons]
+
+plt.figure(figsize=(12, 6))
+cmap = cm.get_cmap('tab10', len(desired_indices))
+
+# Plot predictions from all models (faint lines)
+for model_idx, model in enumerate(models):
+    y0_test = test_tensor_data[0, :]
+    y_pred_test = model(y0_test, test_torch).detach().numpy()
+    pred_fractions = y_pred_test / y_pred_test.sum(axis=1, keepdims=True)
+    for plot_idx, j in enumerate(desired_indices):
+        color = cmap(plot_idx)
+        plt.plot(
+            test_torch.numpy(),
+            pred_fractions[:, j],
+            linestyle='--',
+            color=color,
+            alpha=0.25,
+            label=f'Model {model_idx+1} Pred {all_ngons[j]}-gons' if model_idx == 0 else None
+        )
+
+# Plot actual test data fractions for reference
+actual_fractions = test_tensor_data.numpy() / test_tensor_data.numpy().sum(axis=1, keepdims=True)
+for plot_idx, j in enumerate(desired_indices):
+    color = cmap(plot_idx)
+    plt.plot(
+        test_torch.numpy(),
+        actual_fractions[:, j],
+        color=color,
+        linewidth=2,
+        label=f'Actual {all_ngons[j]}-gons'
+    )
+
+# Plot the average predictions
+avg_pred_fractions = np.mean(all_model_preds, axis=0)
+for plot_idx, j in enumerate(desired_indices):
+    color = cmap(plot_idx)
+    plt.plot(
+        test_torch.numpy(),
+        avg_pred_fractions[:, j],
+        linestyle='-',
+        color=color,
+        linewidth=3,
+        label=f'Average Pred {all_ngons[j]}-gons'
+    )
+
+plt.xlabel('Cuts')
+plt.ylabel('Fraction of n-gons')
+plt.title('Model Predictions on Test Data (3, 4, 5-gons)')
 plt.legend()
 plt.show()
