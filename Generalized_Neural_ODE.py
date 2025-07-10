@@ -47,7 +47,7 @@ class NeuralODE(nn.Module):
     def forward(self, y0, t):
         return odeint(self.ode_func, y0, t)
 
-def train_neural_ode(tensor_data, t_torch, layer_len, epochs=500, lr=0.01):
+def train_neural_ode(tensor_data, t_torch, layer_len, epochs=200, lr=0.01):
     ode_func = ODEFunc(layer_len)
     neural_ode = NeuralODE(ode_func)
     y0 = tensor_data[0, :]
@@ -88,4 +88,55 @@ for i, fname in enumerate(data_files):
     plt.title(f'Fraction of Each n-gon: Target vs Predicted (File {i+1})')
     plt.show()
 
-# Make a graph showing how the models made perform on a validation set
+# Load testing data (use the same all_ngons as in training for consistency)
+test_file = 'ngon_counts_TESTING.json'
+with open(test_file, 'r') as f:
+    test_data = json.load(f)
+
+# Use the all_ngons from the first model for consistent ordering
+_, _, _, all_ngons, data_scale, tscale = load_ngon_data([data_files[0]])
+test_tensor_data = []
+for d in test_data:
+    vec = [d.get(str(n), 0) for n in all_ngons]
+    test_tensor_data.append(vec)
+test_tensor_data = np.array(test_tensor_data)
+test_tensor_data = torch.tensor(test_tensor_data / data_scale, requires_grad=False, dtype=torch.float32)
+test_t = np.linspace(0, len(test_tensor_data), len(test_tensor_data), endpoint=False)
+test_torch = torch.tensor(test_t / tscale, requires_grad=False, dtype=torch.float32)
+layer_len = len(all_ngons)
+
+# Plot predictions from all models on the same graph
+plt.figure(figsize=(12, 6))
+cmap = cm.get_cmap('tab10', layer_len)
+for model_idx, model in enumerate(models):
+    y0_test = test_tensor_data[0, :]
+    y_pred_test = model(y0_test, test_torch).detach().numpy()
+    pred_fractions = y_pred_test / y_pred_test.sum(axis=1, keepdims=True)
+    for j in range(layer_len):
+        color = cmap(j)
+        plt.plot(
+            test_torch.numpy(),
+            pred_fractions[:, j],
+            linestyle='--',
+            color=color,
+            alpha=0.5 + 0.5 * (model_idx / len(models)),  # Slightly different alpha for each model
+            label=f'Model {model_idx+1} Pred {j+3}-gons' if model_idx == 0 else None  # Only label once per n-gon
+        )
+
+# Plot actual test data fractions for reference
+actual_fractions = test_tensor_data.numpy() / test_tensor_data.numpy().sum(axis=1, keepdims=True)
+for j in range(layer_len):
+    color = cmap(j)
+    plt.plot(
+        test_torch.numpy(),
+        actual_fractions[:, j],
+        color=color,
+        linewidth=2,
+        label=f'Actual {j+3}-gons'
+    )
+
+plt.xlabel('Cuts')
+plt.ylabel('Fraction of n-gons')
+plt.title('Model Predictions on Test Data (All Models)')
+plt.legend()
+plt.show()
