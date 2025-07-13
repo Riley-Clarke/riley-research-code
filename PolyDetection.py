@@ -284,83 +284,83 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
 #==================================== BODY OF CODE =========================================
 
 
+for k in range(30):
+    # Add random lines and border lines
+    #lines = create_lines(15)
+    border_lines = [
+        Line(corners[0], corners[1]),
+        Line(corners[1], corners[2]),
+        Line(corners[2], corners[3]),
+        Line(corners[3], corners[0])
+    ]
+    #lines += border_lines
+    lines = border_lines
 
-# Add random lines and border lines
-#lines = create_lines(15)
-border_lines = [
-    Line(corners[0], corners[1]),
-    Line(corners[1], corners[2]),
-    Line(corners[2], corners[3]),
-    Line(corners[3], corners[0])
-]
-#lines += border_lines
-lines = border_lines
-
-intersections=find_intersections(lines)
-final_lines = []
-for idx, line in enumerate(lines):
-    pts = list(intersections[idx])
-    segments = split_line_at_points(line, pts)
-    final_lines.extend(segments)
-
-
-# Plot all segments
-for line in final_lines:
-    ax[0].plot(line.x, line.y, color='b')
-
-# Find Polygons
-edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
-print("Finding Polygons...")
-G = nx.Graph()
-G.add_edges_from(edges)
-polys = nx.minimum_cycle_basis(G)
-print("Detected polygons:", polys)
-print("Number of Polygons:", len(polys))
-totalverts=0
-
-# Data
-
-num_ngons=[]
-
-num_cuts=300
-for i in range(num_cuts):
-    p=pick_a_poly(polys)
-    polys=cut_a_poly(p, polys)
-    side_counts=Counter(len(poly) for poly in polys)
-    num_ngons.append(dict(side_counts))
-    #print(len(polys), "\n")
-print(f"Polygons after cut:{polys}")
-listPolySizes=[]
-listPolyAreas=[]
-vBarLines=[]
-for poly in polys:
-    totalverts+=len(poly)
-    listPolySizes.append(len(poly))
-    listPolyAreas.append(areaOfPoly(poly))
-    vBarLines.append(totalverts/len(listPolySizes))    
-print("Average number of vertices:", totalverts/(len(polys))) 
-print("Total number of polygons: ", len(polys))
-indeces=[]
-for i in range(0,len(listPolyAreas)):
-    indeces.append(i)
+    intersections=find_intersections(lines)
+    final_lines = []
+    for idx, line in enumerate(lines):
+        pts = list(intersections[idx])
+        segments = split_line_at_points(line, pts)
+        final_lines.extend(segments)
 
 
-# Save num_ngons to a file
-with open("./neural_data/ngon_counts_per_cut_K.json", "w") as f:
-    json.dump(num_ngons, f, indent=2)
+    # Plot all segments
+    for line in final_lines:
+        ax[0].plot(line.x, line.y, color='b')
+
+    # Find Polygons
+    edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
+    print("Finding Polygons...")
+    G = nx.Graph()
+    G.add_edges_from(edges)
+    polys = nx.minimum_cycle_basis(G)
+    print("Detected polygons:", polys)
+    print("Number of Polygons:", len(polys))
+    totalverts=0
+
+    # Data
+
+    num_ngons=[]
+
+    num_cuts=300
+    for i in range(num_cuts):
+        p=pick_a_poly(polys)
+        polys=cut_a_poly(p, polys)
+        side_counts=Counter(len(poly) for poly in polys)
+        num_ngons.append(dict(side_counts))
+        #print(len(polys), "\n")
+    print(f"Polygons after cut:{polys}")
+    listPolySizes=[]
+    listPolyAreas=[]
+    vBarLines=[]
+    for poly in polys:
+        totalverts+=len(poly)
+        listPolySizes.append(len(poly))
+        listPolyAreas.append(areaOfPoly(poly))
+        vBarLines.append(totalverts/len(listPolySizes))    
+    print("Average number of vertices:", totalverts/(len(polys))) 
+    print("Total number of polygons: ", len(polys))
+    indeces=[]
+    for i in range(0,len(listPolyAreas)):
+        indeces.append(i)
 
 
-# Plotting data
-ax[1].hist(listPolySizes)
-ax[1].set_xlabel("Number of Sides")
-ax[1].set_ylabel("Number of Polygons")
-ax[2].hist(listPolyAreas)
-ax[2].set_xlabel("Area of Polygons")
-ax[2].set_ylabel("Number of Polygons")
-ax[3].plot(indeces,vBarLines)
-ax[3].set_xlabel("Number of Polygons")
-ax[3].set_ylabel("Avg. Number of Sides")
-plt.subplot_tool()
-plt.show()
+    # Save num_ngons to a file
+    with open(f"./neural_data/ngon_counts_per_cut_{k}.json", "w") as f:
+        json.dump(num_ngons, f, indent=2)
 
+    '''
+    # Plotting data
+    ax[1].hist(listPolySizes)
+    ax[1].set_xlabel("Number of Sides")
+    ax[1].set_ylabel("Number of Polygons")
+    ax[2].hist(listPolyAreas)
+    ax[2].set_xlabel("Area of Polygons")
+    ax[2].set_ylabel("Number of Polygons")
+    ax[3].plot(indeces,vBarLines)
+    ax[3].set_xlabel("Number of Polygons")
+    ax[3].set_ylabel("Avg. Number of Sides")
+    plt.subplot_tool()
+    plt.show()
+    '''
 

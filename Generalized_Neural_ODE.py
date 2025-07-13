@@ -67,27 +67,39 @@ data_files = glob.glob('./neural_data/ngon_counts_per_cut*.json')  # or your pat
 
 models = []
 for i, fname in enumerate(data_files):
-    print(f"\nTraining model {i+1} on file: {fname}")
-    tensor_data, t_torch, layer_len, all_ngons, data_scale, tscale = load_ngon_data([fname])
-    model = train_neural_ode(tensor_data, t_torch, layer_len)
-    models.append(model)
-    
-    # Evaluate the trained model
-    y_pred = model(tensor_data[0, :], t_torch).detach().numpy()
-    #plt.figure(figsize=(10, 5))
-    #cmap = plt.get_cmap('tab10', layer_len)
-    actual_fractions = tensor_data.numpy() / tensor_data.numpy().sum(axis=1, keepdims=True)
-    pred_fractions = y_pred / y_pred.sum(axis=1, keepdims=True)
-    '''
-    for j in range(layer_len):
-        color = cmap(j)
-        plt.plot(t_torch.numpy(), actual_fractions[:, j], color=color, label=f'{j+3}-gons')
-        plt.plot(t_torch.numpy(), pred_fractions[:, j], '--', color=color, label=f'Predicted {j+3}-gons')
-    plt.xlabel('Cuts')
-    plt.ylabel('Fraction of n-gons')
-    plt.legend()
-    plt.title(f'Fraction of Each n-gon: Target vs Predicted (File {i+1})')
-    plt.show()
+    save_path='./nn_models/'+fname[14:-5]+'.pt'
+    if os.path.exists(save_path):
+        tensor_data, t_torch, layer_len, all_ngons, data_scale, tscale = load_ngon_data([fname])
+        print("Loading saved model: ",save_path)
+        ode_func = ODEFunc(layer_len)
+        model = NeuralODE(ode_func)
+        model.load_state_dict(torch.load(save_path, weights_only=True))
+        model.eval()
+        models.append(model)
+    else:
+        print(f"\nTraining model {i+1} on file: {fname}")
+        
+        tensor_data, t_torch, layer_len, all_ngons, data_scale, tscale = load_ngon_data([fname])
+        model = train_neural_ode(tensor_data, t_torch, layer_len)
+        models.append(model)
+        
+        # Evaluate the trained model
+        y_pred = model(tensor_data[0, :], t_torch).detach().numpy()
+        #plt.figure(figsize=(10, 5))
+        #cmap = plt.get_cmap('tab10', layer_len)
+        actual_fractions = tensor_data.numpy() / tensor_data.numpy().sum(axis=1, keepdims=True)
+        pred_fractions = y_pred / y_pred.sum(axis=1, keepdims=True)
+        torch.save(model.state_dict(), save_path)
+        '''
+        for j in range(layer_len):
+            color = cmap(j)
+            plt.plot(t_torch.numpy(), actual_fractions[:, j], color=color, label=f'{j+3}-gons')
+            plt.plot(t_torch.numpy(), pred_fractions[:, j], '--', color=color, label=f'Predicted {j+3}-gons')
+        plt.xlabel('Cuts')
+        plt.ylabel('Fraction of n-gons')
+        plt.legend()
+        plt.title(f'Fraction of Each n-gon: Target vs Predicted (File {i+1})')
+        plt.show()
     '''
 
 # Load testing data (use the same all_ngons as in training for consistency)
@@ -109,7 +121,7 @@ layer_len = len(all_ngons)
 
 # Plot predictions from all models on the same graph
 plt.figure(figsize=(12, 6))
-cmap = cm.get_cmap('tab10', layer_len)
+cmap =plt.get_cmap('tab10', layer_len)
 for model_idx, model in enumerate(models):
     y0_test = test_tensor_data[0, :]
     y_pred_test = model(y0_test, test_torch).detach().numpy()
@@ -167,7 +179,7 @@ for j in range(layer_len):
 plt.xlabel('Cuts')
 plt.ylabel('Fraction of n-gons')
 plt.title('Model Predictions on Test Data (All Models)')
-plt.legend()
+#plt.legend()
 #plt.show()
 
 # Only plot 3, 4, and 5-gons
@@ -175,7 +187,7 @@ desired_ngons = [3, 4, 5]
 desired_indices = [all_ngons.index(n) for n in desired_ngons if n in all_ngons]
 
 plt.figure(figsize=(12, 6))
-cmap = cm.get_cmap('tab10', len(desired_indices))
+cmap = plt.get_cmap('tab10', len(desired_indices))
 
 # Plot predictions from all models (faint lines)
 for model_idx, model in enumerate(models):
