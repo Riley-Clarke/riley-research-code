@@ -17,6 +17,9 @@ plt.bone()
 
 # --------------------------------- Vertex class ---------------------------------
 class Vertex:
+    reg = 0
+    irr = 0
+
     def __init__(self, x, y):
         self.x = float(x)
         self.y = float(y)
@@ -352,7 +355,7 @@ for k in range(1):
 
     num_ngons=[]
 
-    num_cuts=3
+    num_cuts=5
     for i in range(num_cuts):
         p=pick_a_poly(polys)
         polys=cut_a_poly(p, polys)
@@ -379,15 +382,27 @@ for k in range(1):
     with open(f"./neural_data/ngon_counts_TESTING.json", "w") as f:
         json.dump(num_ngons, f, indent=2)
 
-    # Build vertex-to-polygons mapping
+    # Build vertex-to-polygons mapping with colinearity check
     vertex_to_polys = {}
     for poly_idx, poly in enumerate(polys):
-        for vert in poly:
+        n = len(poly)
+        for i, vert in enumerate(poly):
             vert_tuple = tuple(vert)
             vert_key = str(vert_tuple)  # Convert tuple to string for JSON
+
+            # Check colinearity with previous and next vertex
+            prev_vert = poly[i - 1]
+            next_vert = poly[(i + 1) % n]
+            x0, y0 = prev_vert
+            x1, y1 = vert
+            x2, y2 = next_vert
+            # Compute cross product to check colinearity
+            cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
+            is_irregular = 1 if np.isclose(cross, 0, atol=0.0005) else 0
+
             if vert_key not in vertex_to_polys:
                 vertex_to_polys[vert_key] = []
-            vertex_to_polys[vert_key].append(poly_idx)
+            vertex_to_polys[vert_key].append((poly_idx, is_irregular))
 
     # Save to JSON
     with open(f"./vertex_to_polys_{k}.json", "w") as f:
