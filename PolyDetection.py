@@ -205,34 +205,56 @@ def pick_a_point(v1, v2):
     
     return Vertex(round(x, digits), round(y, digits))
 
+def update_poly(poly, points):
+    # Checking if the given polygon has any of the given points on any of its lines and updating it if so.
+    updated_poly = poly.copy()
+    for point in points:
+        for i in range(len(poly)):
+            v1 = poly[i]
+            v2 = poly[(i + 1) % len(poly)]
+            # Check if point is on the line segment v1-v2
+            x1, y1 = v1[0], v1[1]
+            x2, y2 = v2[0], v2[1]
+            px, py = point.x, point.y
+            # Compute cross product to check colinearity
+            cross = (px - x1) * (y2 - y1) - (py - y1) * (x2 - x1)
+            if np.isclose(cross, 0, atol=0.0005):
+                # Check if point is between v1 and v2
+                if min(x1, x2) - 0.0005 <= px <= max(x1, x2) + 0.0005 and min(y1, y2) - 0.0005 <= py <= max(y1, y2) + 0.0005:
+                    # Insert point between v1 and v2 if not already present
+                    idx = i + 1
+                    if (round(px, digits), round(py, digits)) not in [(round(v[0], digits), round(v[1], digits)) for v in updated_poly]:
+                        updated_poly.insert(idx, (px, py))
+    return updated_poly
+
     
-'''
-
-
-ISSUE: Method of picking a point on the line is not exact enough. If it is on a line that is not on a border, the lines are very very close. 
-Need to find some way to check intersection or pick a point that is more exact.
-
-
-'''
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly, poly_list, max_attempts=10):
     for attempt in range(max_attempts):
         #print(poly)
         s1=random.randint(0, len(poly)-1)
         s2=random.randint(0, len(poly)-1)
+        v_of_s1=None
+        v_of_s2=None
         while(s1==s2):
             s2=random.randint(0, len(poly)-1)
         p1=None
         p2=None
         if(s1==len(poly)-1):
             p1=pick_a_point(poly[s1], poly[0])
+            v_of_s1=[poly[s1], poly[0]]
             p2=pick_a_point(poly[s2], poly[s2+1])
+            v_of_s2=[poly[s2], poly[s2+1]]
         elif(s2==len(poly)-1):
             p1=pick_a_point(poly[s1], poly[s1+1])
+            v_of_s1=[poly[s1], poly[s1+1]]
             p2=pick_a_point(poly[s2], poly[0])
+            v_of_s2=[poly[s2], poly[0]]
         else:
             p1=pick_a_point(poly[s1], poly[s1+1])
+            v_of_s1=[poly[s1], poly[s1+1]]
             p2=pick_a_point(poly[s2], poly[s2+1])
+            v_of_s2=[poly[s2], poly[s2+1]]
         points=[p1, p2]
         lines=[]
         for v in range(len(poly)):
@@ -262,16 +284,30 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
         new_polys=nx.minimum_cycle_basis(graph)
         #Possibly hardcode it to make sure the length of new polys is 2 after every cut?
         if(len(new_polys)==2):
-            #print("Num new polys: ", len(new_polys))
+            poly_list.remove(poly)
+            touching_polys = []
+            poly_set = set(tuple([round(v[0], digits), round(v[1], digits)]) for v in poly)
+            for other_poly in poly_list:
+                other_set = set(tuple([round(v[0], digits), round(v[1], digits)]) for v in other_poly)
+                if poly_set & other_set:
+                    touching_polys.append(other_poly)
+            for tp in touching_polys:
+                if tp in poly_list:
+                    poly_list.remove(tp)
+                    updated_tp = update_poly(tp, points)
+                    poly_list.append(updated_tp)
+
             for p in new_polys:
                 #print(f"Cut Poly:{p}\n") 
                 poly_list.append(p)
             plt.plot(n_line.x, n_line.y, color='r')
-            poly_list.remove(poly)
+            
             return poly_list
     #print("Max attempts reached, skipping this cut.")
     return poly_list
     
+
+
 
 #=============================== END HELPER FUNCTIONS ======================================
 
@@ -316,7 +352,7 @@ for k in range(1):
 
     num_ngons=[]
 
-    num_cuts=100
+    num_cuts=3
     for i in range(num_cuts):
         p=pick_a_poly(polys)
         polys=cut_a_poly(p, polys)
