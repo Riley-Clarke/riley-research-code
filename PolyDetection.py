@@ -9,16 +9,9 @@ import json
 
 
 # Matplotlib setup
-fig, ax = plt.subplots(1,4, figsize=(20,5))
-square = patches.Rectangle((0.0, 0.0), 1, 1, linewidth=1, edgecolor='r', facecolor='none')
-ax[0].add_patch(square)
-ax[0].set_xlim(0, 1)
-ax[0].set_ylim(0, 1)
-ax[0].set_aspect('equal')
-ax[1].set_aspect('auto')
-ax[2].set_aspect('auto')
-ax[3].set_aspect('auto')
+plt.figure(figsize=(10,10))
 plt.bone()
+
 
 
 
@@ -96,7 +89,7 @@ class Line:
         return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
-    def intersect(self, other, tol=0.001):
+    def intersect(self, other, tol=0.0005):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
         x2, y2 = self.v2.x, self.v2.y
@@ -272,7 +265,7 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
             for p in new_polys:
                 #print(f"Cut Poly:{p}\n") 
                 poly_list.append(p)
-            ax[0].plot(n_line.x, n_line.y, color='r')
+            plt.plot(n_line.x, n_line.y, color='r')
             poly_list.remove(poly)
             return poly_list
     #print("Max attempts reached, skipping this cut.")
@@ -284,7 +277,7 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
 #==================================== BODY OF CODE =========================================
 
 
-for k in range(30):
+for k in range(1):
     # Add random lines and border lines
     #lines = create_lines(15)
     border_lines = [
@@ -306,7 +299,7 @@ for k in range(30):
 
     # Plot all segments
     for line in final_lines:
-        ax[0].plot(line.x, line.y, color='b')
+        plt.plot(line.x, line.y, color='b')
 
     # Find Polygons
     edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
@@ -322,7 +315,7 @@ for k in range(30):
 
     num_ngons=[]
 
-    num_cuts=300
+    num_cuts=5
     for i in range(num_cuts):
         p=pick_a_poly(polys)
         polys=cut_a_poly(p, polys)
@@ -346,21 +339,38 @@ for k in range(30):
 
 
     # Save num_ngons to a file
-    with open(f"./neural_data/ngon_counts_per_cut_{k}.json", "w") as f:
+    with open(f"./neural_data/ngon_counts_TESTING.json", "w") as f:
         json.dump(num_ngons, f, indent=2)
 
-    '''
+    # Build vertex-to-polygons mapping
+    vertex_to_polys = {}
+    for poly_idx, poly in enumerate(polys):
+        for vert in poly:
+            vert_tuple = tuple(vert)
+            vert_key = str(vert_tuple)  # Convert tuple to string for JSON
+            if vert_key not in vertex_to_polys:
+                vertex_to_polys[vert_key] = []
+            vertex_to_polys[vert_key].append(poly_idx)
+
+    # Save to JSON
+    with open(f"./vertex_to_polys_{k}.json", "w") as f:
+        json.dump(vertex_to_polys, f, indent=2)
+    plt.savefig('Current_Cut.png')
+    fig, ax = plt.subplots(1,3, figsize=(20,5))
+    ax[0].set_aspect('auto')
+    ax[1].set_aspect('auto')
+    ax[2].set_aspect('auto')
     # Plotting data
-    ax[1].hist(listPolySizes)
-    ax[1].set_xlabel("Number of Sides")
+    ax[0].hist(listPolySizes)
+    ax[0].set_xlabel("Number of Sides")
+    ax[0].set_ylabel("Number of Polygons")
+    ax[1].hist(listPolyAreas)
+    ax[1].set_xlabel("Area of Polygons")
     ax[1].set_ylabel("Number of Polygons")
-    ax[2].hist(listPolyAreas)
-    ax[2].set_xlabel("Area of Polygons")
-    ax[2].set_ylabel("Number of Polygons")
-    ax[3].plot(indeces,vBarLines)
-    ax[3].set_xlabel("Number of Polygons")
-    ax[3].set_ylabel("Avg. Number of Sides")
-    plt.subplot_tool()
+    ax[2].plot(indeces,vBarLines)
+    ax[2].set_xlabel("Number of Polygons")
+    ax[2].set_ylabel("Avg. Number of Sides")
+    plt.savefig('Data_For_Current_Cut.png')
     plt.show()
-    '''
+
 
