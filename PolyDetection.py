@@ -189,8 +189,9 @@ def areaOfPoly(poly):
 
 # Pick a random polygon from a list of polygons
 def pick_a_poly(polys):
-    poly=random.randint(0, len(polys)-1)
-    return polys[poly]
+    areas = [areaOfPoly(poly) for poly in polys]
+    chosen_poly = random.choices(polys, weights=areas, k=1)[0]
+    return chosen_poly
 
 # Pick a random point along a line
 def pick_a_point(v1, v2):
@@ -315,7 +316,7 @@ for k in range(1):
 
     num_ngons=[]
 
-    num_cuts=5
+    num_cuts=100
     for i in range(num_cuts):
         p=pick_a_poly(polys)
         polys=cut_a_poly(p, polys)
