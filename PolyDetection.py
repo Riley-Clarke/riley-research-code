@@ -14,16 +14,16 @@ plt.bone()
 
 
 
-
+digits = 4
 # --------------------------------- Vertex class ---------------------------------
 class Vertex:
     reg = 0
     irr = 0
 
     def __init__(self, x, y):
-        self.x = float(x)
-        self.y = float(y)
-        self.tp= (float(x), float(y))
+        self.x = round(float(x), digits)
+        self.y = round(float(y), digits)
+        self.tp = (self.x, self.y)
     def __eq__(self, other):
         return np.isclose(self.x, other.x) and np.isclose(self.y, other.y)
     def __eqtp__(self, other):
@@ -31,7 +31,7 @@ class Vertex:
     def __hash__(self):
         return hash((round(self.x, digits), round(self.y, digits)))
     def __repr__(self):
-        return f"Vertex({self.x:.3f}, {self.y:.3f})"
+        return f"Vertex({self.x:4f}, {self.y:4f})"
     def as_tuple(self):
         return (self.x, self.y)
 
@@ -49,7 +49,7 @@ corners = [
 
 # --------------------------------- Line Class ---------------------------------
 
-digits = 3
+
 
 class Line:
     _id_counter = 0  # class variable for unique IDs
@@ -92,7 +92,7 @@ class Line:
         return f"Line {self.id}: ({self.v1.x},{self.v1.y}) ({self.v2.x},{self.v2.y})"
     def as_tuple(self):
         return (self.v1, self.v2)
-    def intersect(self, other, tol=0.0005):
+    def intersect(self, other, tol=0.0001):
         # Returns intersection point as Vertex if segments intersect, else None
         x1, y1 = self.v1.x, self.v1.y
         x2, y2 = self.v2.x, self.v2.y
@@ -133,33 +133,48 @@ def create_lines(n):
         lines.append(line)
     return lines
 
+def snap_to_existing_vertices(pt, existing_vertices, tol=0.001):
+    # pt is a Vertex, existing_vertices is a list of Vertex
+    for v in existing_vertices:
+        if np.isclose(pt.x, v.x, atol=tol) and np.isclose(pt.y, v.y, atol=tol):
+            return Vertex(v.x, v.y)  # Snap to existing vertex
+    return pt  # No match, keep as is
+
+
+
 # Find all intersections
 print("Finding intersections and splitting lines...")
 def find_intersections(lines):
+    # Collect all existing vertices
+    all_vertices = []
+    for line in lines:
+        all_vertices.extend([line.v1, line.v2])
     intersections = {i: set([lines[i].v1, lines[i].v2]) for i in range(len(lines))}
     for i in range(len(lines)):
         for j in range(i+1, len(lines)):
             pt = lines[i].intersect(lines[j])
             if pt:
+                pt = snap_to_existing_vertices(pt, all_vertices)
                 intersections[i].add(pt)
                 intersections[j].add(pt)
     return intersections
 
 # Split lines at intersection points
 def split_line_at_points(line, points):
+    # Collect all existing vertices for snapping
+    existing_vertices = [line.v1, line.v2]
+    points = [snap_to_existing_vertices(pt, existing_vertices) for pt in points]
     # Sort points along the line
     if abs(line.p1[0] - line.p2[0]) > abs(line.p1[1] - line.p2[1]):
         points = sorted(points, key=lambda v: v.x)
     else:
         points = sorted(points, key=lambda v: v.y)
     segments = []
-    # Remove duplicate points (using set), then sort again
-    unique_points = list(set(points))
+    unique_points = list({(v.x, v.y): v for v in points}.values())  # Remove duplicates by coordinates
     if abs(line.p1[0] - line.p2[0]) > abs(line.p1[1] - line.p2[1]):
         unique_points.sort(key=lambda v: v.x)
     else:
         unique_points.sort(key=lambda v: v.y)
-    # Replace -0.0 with 0.0 for x and y
     for v in unique_points:
         if np.isclose(v.x, 0.0):
             v.x = 0.0
@@ -227,14 +242,14 @@ def update_poly(poly, points):
                     # Insert point between v1 and v2 if not already present
                     idx = i + 1
                     if (round(px, digits), round(py, digits)) not in [(round(v[0], digits), round(v[1], digits)) for v in updated_poly]:
-                        updated_poly.insert(idx, (px, py))
+                        updated_poly.insert(idx, Vertex(px, py).as_tuple())
     return updated_poly
 
     
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly, poly_list, max_attempts=10):
     for attempt in range(max_attempts):
-        #print(poly)
+        print(poly)
         s1=random.randint(0, len(poly)-1)
         s2=random.randint(0, len(poly)-1)
         v_of_s1=None
@@ -270,18 +285,19 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
                 v2=Vertex(poly[v+1][0], poly[v+1][1])
                 lines.append(Line(v1, v2))
         n_line= Line(p1, p2)
-        #print(f"New Line: {n_line}\n")
+        print(f"New Line: {n_line}\n")
         lines.append(n_line)
 
         intersections=find_intersections(lines)
+        print(intersections)
         final_lines = []
         for idx, line in enumerate(lines):
             pts = list(intersections[idx])
             segments = split_line_at_points(line, pts)
             final_lines.extend(segments)
-
+            
         cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
-        #print(f"Cut edges {cut_edges}\n")
+        print(f"Cut edges {cut_edges}\n")
         graph=nx.Graph()
         graph.add_edges_from(cut_edges)
         new_polys=nx.minimum_cycle_basis(graph)
@@ -298,10 +314,11 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
                 if tp in poly_list:
                     poly_list.remove(tp)
                     updated_tp = update_poly(tp, points)
+                    print(updated_tp)
                     poly_list.append(updated_tp)
 
             for p in new_polys:
-                #print(f"Cut Poly:{p}\n") 
+                print(f"Cut Poly:{p}\n") 
                 poly_list.append(p)
             plt.plot(n_line.x, n_line.y, color='r')
             
@@ -347,8 +364,8 @@ for k in range(1):
     G = nx.Graph()
     G.add_edges_from(edges)
     polys = nx.minimum_cycle_basis(G)
-    print("Detected polygons:", polys)
-    print("Number of Polygons:", len(polys))
+    #print("Detected polygons:", polys)
+    #print("Number of Polygons:", len(polys))
     totalverts=0
 
     # Data
@@ -383,11 +400,13 @@ for k in range(1):
         json.dump(num_ngons, f, indent=2)
 
     # Build vertex-to-polygons mapping with colinearity check
+    irregular_count=0
+    regular_count=0
     vertex_to_polys = {}
     for poly_idx, poly in enumerate(polys):
         n = len(poly)
         for i, vert in enumerate(poly):
-            vert_tuple = tuple(vert)
+            vert_tuple = Vertex(vert[0], vert[1]).as_tuple()
             vert_key = str(vert_tuple)  # Convert tuple to string for JSON
 
             # Check colinearity with previous and next vertex
@@ -398,12 +417,22 @@ for k in range(1):
             x2, y2 = next_vert
             # Compute cross product to check colinearity
             cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
-            is_irregular = 1 if np.isclose(cross, 0, atol=0.0005) else 0
+            print(f"Cross for {prev_vert, vert, next_vert}: {cross}")
+            is_irregular = 1 if np.isclose(cross, 0, atol=1e-5) else 0
 
+            if is_irregular:
+                irregular_count=irregular_count+1
+            else:
+                regular_count=regular_count+1
             if vert_key not in vertex_to_polys:
                 vertex_to_polys[vert_key] = []
             vertex_to_polys[vert_key].append((poly_idx, is_irregular))
 
+    print(f"Number of corners: {regular_count/len(polys)}")
+    print(f"Number of irreguar vertices: {irregular_count}")
+    print(f"Number of regular vertices: {regular_count}")
+    print(f"Average nodal corner degree (x): {(irregular_count+regular_count)/regular_count}")
+    print(f"Average cell corner degree (y): {(len(polys))/regular_count}")
     # Save to JSON
     with open(f"./vertex_to_polys_{k}.json", "w") as f:
         json.dump(vertex_to_polys, f, indent=2)
