@@ -380,19 +380,7 @@ for k in range(1):
         num_ngons.append(dict(side_counts))
         #print(len(polys), "\n")
     print(f"Polygons after cut:{polys}")
-    listPolySizes=[]
-    listPolyAreas=[]
-    vBarLines=[]
-    for poly in polys:
-        totalverts+=len(poly)
-        listPolySizes.append(len(poly))
-        listPolyAreas.append(areaOfPoly(poly))
-        vBarLines.append(totalverts/len(listPolySizes))    
-    print("Average number of vertices:", totalverts/(len(polys))) 
-    print("Total number of polygons: ", len(polys))
-    indeces=[]
-    for i in range(0,len(listPolyAreas)):
-        indeces.append(i)
+    
 
 
     # Save num_ngons to a file
@@ -418,7 +406,7 @@ for k in range(1):
             # Compute cross product to check colinearity
             cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
             print(f"Cross for {prev_vert, vert, next_vert}: {cross}")
-            is_irregular = 1 if np.isclose(cross, 0, atol=1e-5) else 0
+            is_irregular = 1 if np.isclose(cross, 0, atol=1e-4) else 0
 
             if is_irregular:
                 irregular_count=irregular_count+1
@@ -428,14 +416,30 @@ for k in range(1):
                 vertex_to_polys[vert_key] = []
             vertex_to_polys[vert_key].append((poly_idx, is_irregular))
 
-    print(f"Number of corners: {regular_count/len(polys)}")
+    print(f"Avg. Number of sides: {regular_count/len(polys)}")
     print(f"Number of irreguar vertices: {irregular_count}")
     print(f"Number of regular vertices: {regular_count}")
-    print(f"Average nodal corner degree (x): {(irregular_count+regular_count)/regular_count}")
-    print(f"Average cell corner degree (y): {(len(polys))/regular_count}")
+    print(f"Recip. of Average nodal corner degree (x): {(irregular_count+regular_count)/regular_count}")
+    print(f"Recip. of Average cell corner degree (y): {(len(polys))/regular_count}")
     # Save to JSON
     with open(f"./vertex_to_polys_{k}.json", "w") as f:
         json.dump(vertex_to_polys, f, indent=2)
+
+    # These statics don't work currently after switching to having both regular and irregular vertices, will fix soon
+    listPolySizes=[]
+    listPolyAreas=[]
+    vBarLines=[]
+    for poly in polys:
+        totalverts+=len(poly)
+        listPolySizes.append(len(poly))
+        listPolyAreas.append(areaOfPoly(poly))
+        vBarLines.append(totalverts/len(listPolySizes))    
+    print("Total number of polygons: ", len(polys))
+    indeces=[]
+    for i in range(0,len(listPolyAreas)):
+        indeces.append(i)
+
+
     plt.savefig('Current_Cut.png')
     fig, ax = plt.subplots(1,3, figsize=(20,5))
     ax[0].set_aspect('auto')
