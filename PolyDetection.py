@@ -416,6 +416,25 @@ for k in range(1):
                 vertex_to_polys[vert_key] = []
             vertex_to_polys[vert_key].append((poly_idx, is_irregular))
 
+    '''
+        N_F= summation from i=1 to F of v_i
+        N_V= summation from j=1 to V of n_j
+        N= (N_F + N_V)/2
+        N*= (N*_F + N*_V)/2
+        in F, v_i is the number of total vertices (combinatorial degree)
+        v*_i is the number of regular vertices (corner degree)
+        so N_F = the total number of nodes
+        and N_V= the total combinatorial degree of all vertices
+        N*_F= the total number of regular nodes
+        N*_V= the corner degree of all vertices
+        so N=(nodes + combinatorial degree of vertices)/2
+           N*=(regular nodes + corner degree of all vertices)/2
+        
+           x=V(number of nodes)/N*
+           y=F(number of polys)/N*
+    '''
+
+
     print(f"Avg. Number of sides: {regular_count/len(polys)}")
     print(f"Number of irreguar vertices: {irregular_count}")
     print(f"Number of regular vertices: {regular_count}")
@@ -439,6 +458,28 @@ for k in range(1):
     for i in range(0,len(listPolyAreas)):
         indeces.append(i)
 
+    poly_vertex_stats = []
+    for poly in polys:
+        n = len(poly)
+        regular = 0
+        irregular = 0
+        for i, vert in enumerate(poly):
+            prev_vert = poly[i - 1]
+            next_vert = poly[(i + 1) % n]
+            x0, y0 = prev_vert
+            x1, y1 = vert
+            x2, y2 = next_vert
+            cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
+            is_irregular = 1 if np.isclose(cross, 0, atol=1e-4) else 0
+            if is_irregular:
+                irregular += 1
+            else:
+                regular += 1
+        poly_vertex_stats.append({'regular': regular, 'irregular': irregular})
+
+    print("Regular/Irregular vertex counts per polygon:", poly_vertex_stats)
+
+
 
     plt.savefig('Current_Cut.png')
     fig, ax = plt.subplots(1,3, figsize=(20,5))
@@ -457,5 +498,6 @@ for k in range(1):
     ax[2].set_ylabel("Avg. Number of Sides")
     plt.savefig('Data_For_Current_Cut.png')
     plt.show()
+
 
 
