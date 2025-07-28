@@ -249,7 +249,6 @@ def update_poly(poly, points):
 #cut a polygon by choosing two points on two sides and connecting them with a line, removing the original polygon and forming two new polygons
 def cut_a_poly(poly, poly_list, max_attempts=10):
     for attempt in range(max_attempts):
-        print(poly)
         s1=random.randint(0, len(poly)-1)
         s2=random.randint(0, len(poly)-1)
         v_of_s1=None
@@ -285,11 +284,9 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
                 v2=Vertex(poly[v+1][0], poly[v+1][1])
                 lines.append(Line(v1, v2))
         n_line= Line(p1, p2)
-        print(f"New Line: {n_line}\n")
         lines.append(n_line)
 
         intersections=find_intersections(lines)
-        print(intersections)
         final_lines = []
         for idx, line in enumerate(lines):
             pts = list(intersections[idx])
@@ -297,7 +294,6 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
             final_lines.extend(segments)
             
         cut_edges = [((round(line.v1.x, digits), round(line.v1.y, digits)), (round(line.v2.x, digits), round(line.v2.y, digits))) for line in final_lines]
-        print(f"Cut edges {cut_edges}\n")
         graph=nx.Graph()
         graph.add_edges_from(cut_edges)
         new_polys=nx.minimum_cycle_basis(graph)
@@ -314,11 +310,9 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
                 if tp in poly_list:
                     poly_list.remove(tp)
                     updated_tp = update_poly(tp, points)
-                    print(updated_tp)
                     poly_list.append(updated_tp)
 
             for p in new_polys:
-                print(f"Cut Poly:{p}\n") 
                 poly_list.append(p)
             plt.plot(n_line.x, n_line.y, color='r')
             
@@ -326,7 +320,42 @@ def cut_a_poly(poly, poly_list, max_attempts=10):
     #print("Max attempts reached, skipping this cut.")
     return poly_list
     
+def get_jsp_data(polys):
+        # Build vertex-to-polygons mapping with colinearity check
+        irregular_count=0
+        regular_count=0
+        N_V=0
+        vertex_to_polys = {}
+        for poly_idx, poly in enumerate(polys):
+            n = len(poly)
+            N_V=N_V+n
+            for i, vert in enumerate(poly):
+                vert_tuple = Vertex(vert[0], vert[1]).as_tuple()
+                vert_key = str(vert_tuple)  # Convert tuple to string for JSON
 
+                # Check colinearity with previous and next vertex
+                prev_vert = poly[i - 1]
+                next_vert = poly[(i + 1) % n]
+                x0, y0 = prev_vert
+                x1, y1 = vert
+                x2, y2 = next_vert
+                # Compute cross product to check colinearity
+                cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
+                
+                is_irregular = 1 if np.isclose(cross, 0, atol=1e-4) else 0
+
+                if is_irregular:
+                    irregular_count=irregular_count+1
+                else:
+                    regular_count=regular_count+1
+                if vert_key not in vertex_to_polys:
+                    vertex_to_polys[vert_key] = []
+                vertex_to_polys[vert_key].append((poly_idx, is_irregular))
+        N_F=regular_count+irregular_count
+        N=(N_F+N_V)/2
+        Nstar_F=regular_count
+        Nstar=(Nstar_F*2)/2
+        return N, Nstar, len(polys), len(vertex_to_polys), regular_count, irregular_count, vertex_to_polys
 
 
 #=============================== END HELPER FUNCTIONS ======================================
@@ -371,13 +400,17 @@ for k in range(1):
     # Data
 
     num_ngons=[]
-
-    num_cuts=5
+    x_and_y=[]
+    num_cuts=100
     for i in range(num_cuts):
         p=pick_a_poly(polys)
         polys=cut_a_poly(p, polys)
         side_counts=Counter(len(poly) for poly in polys)
         num_ngons.append(dict(side_counts))
+        N, Nstar, numPolys, numVertices, regular_count, irregular_count, vertex_to_polys = get_jsp_data(polys)
+        x=numVertices/Nstar
+        y=numPolys/Nstar
+        x_and_y.append([x, y])
         #print(len(polys), "\n")
     print(f"Polygons after cut:{polys}")
     
@@ -386,35 +419,6 @@ for k in range(1):
     # Save num_ngons to a file
     with open(f"./neural_data/ngon_counts_TESTING.json", "w") as f:
         json.dump(num_ngons, f, indent=2)
-
-    # Build vertex-to-polygons mapping with colinearity check
-    irregular_count=0
-    regular_count=0
-    vertex_to_polys = {}
-    for poly_idx, poly in enumerate(polys):
-        n = len(poly)
-        for i, vert in enumerate(poly):
-            vert_tuple = Vertex(vert[0], vert[1]).as_tuple()
-            vert_key = str(vert_tuple)  # Convert tuple to string for JSON
-
-            # Check colinearity with previous and next vertex
-            prev_vert = poly[i - 1]
-            next_vert = poly[(i + 1) % n]
-            x0, y0 = prev_vert
-            x1, y1 = vert
-            x2, y2 = next_vert
-            # Compute cross product to check colinearity
-            cross = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0)
-            print(f"Cross for {prev_vert, vert, next_vert}: {cross}")
-            is_irregular = 1 if np.isclose(cross, 0, atol=1e-4) else 0
-
-            if is_irregular:
-                irregular_count=irregular_count+1
-            else:
-                regular_count=regular_count+1
-            if vert_key not in vertex_to_polys:
-                vertex_to_polys[vert_key] = []
-            vertex_to_polys[vert_key].append((poly_idx, is_irregular))
 
     '''
         N_F= summation from i=1 to F of v_i
@@ -435,11 +439,11 @@ for k in range(1):
     '''
 
 
+
+
     print(f"Avg. Number of sides: {regular_count/len(polys)}")
     print(f"Number of irreguar vertices: {irregular_count}")
     print(f"Number of regular vertices: {regular_count}")
-    print(f"Recip. of Average nodal corner degree (x): {(irregular_count+regular_count)/regular_count}")
-    print(f"Recip. of Average cell corner degree (y): {(len(polys))/regular_count}")
     # Save to JSON
     with open(f"./vertex_to_polys_{k}.json", "w") as f:
         json.dump(vertex_to_polys, f, indent=2)
@@ -482,6 +486,18 @@ for k in range(1):
 
 
     plt.savefig('Current_Cut.png')
+
+    x_vals = [pair[0] for pair in x_and_y]
+    y_vals = [pair[1] for pair in x_and_y]
+
+    plt.figure(figsize=(6, 6))
+    plt.plot(x_vals, y_vals, marker='o', linestyle='-')
+    plt.xlabel('x = V(number of nodes)/N*')
+    plt.ylabel('y = F(number of polys)/N*')
+    plt.title('x vs y over cuts')
+    plt.grid(True)
+    plt.savefig('x_and_y_plot.png')
+
     fig, ax = plt.subplots(1,3, figsize=(20,5))
     ax[0].set_aspect('auto')
     ax[1].set_aspect('auto')
@@ -498,6 +514,8 @@ for k in range(1):
     ax[2].set_ylabel("Avg. Number of Sides")
     plt.savefig('Data_For_Current_Cut.png')
     plt.show()
+
+
 
 
 
